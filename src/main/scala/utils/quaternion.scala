@@ -10,7 +10,15 @@ class Quaternion(ar: Float, ax: Float, ay: Float, az: Float) {
   /* additionnal constructors */
   def this () = this(0.0f, 0.0f,0.0f,0.0f)
   def copy (q: Quaternion) : Quaternion = new Quaternion(q.r, q.x, q.y, q.z)
+  //angle in radian
   def this (angle: Float, axis: Vector3) = { this(); setRotation(angle, axis); }
+
+  def load (q: Quaternion) {
+    r = q.r
+    x = q.x
+    y = q.y
+    z = q.z
+  }
 
   def + (q: Quaternion) : Quaternion = new Quaternion(r+q.r, x+q.x, y+q.y, z+q.z)
   def - (q: Quaternion) : Quaternion = new Quaternion(r-q.r, x-q.x, y-q.y, z-q.z)
@@ -22,7 +30,8 @@ class Quaternion(ar: Float, ax: Float, ay: Float, az: Float) {
   }
 
   def * (f: Float) : Quaternion = new Quaternion(r*f, x*f, y*f, z*f)
-  def / (f: Float) : Quaternion = this*1/f
+  def / (f: Float) : Quaternion = new Quaternion(r/f, x/f, y/f, z/f)
+
   def / (q: Quaternion) : Quaternion = this.*(q.inverse);
 
   def += (q: Quaternion) : Quaternion = {

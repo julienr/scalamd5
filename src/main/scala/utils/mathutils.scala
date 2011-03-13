@@ -12,8 +12,8 @@ object MathUtils {
 //  implicit def ~= (x: Float, y: Float) : Boolean = abs(x-y) < EPSILON
   def epsEq (x: Float, y: Float) : Boolean = scala.math.abs(x-y) < EPSILON
 
-  //Cap v in the Intervall [min, max]
-  def cap[T <: Ordered[T]] (v: T, min: T, max: T) = {
+  //Clamp v in the Intervall [min, max]
+  def clamp (v: Float, min: Float, max: Float) = {
     if (v < min) min
     else if (v > max) max
     else v

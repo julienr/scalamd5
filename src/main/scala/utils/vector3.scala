@@ -17,6 +17,12 @@ class Vector3 (ax: Float, ay: Float, az: Float) {
 
   def length () : Float = scala.math.sqrt(x*x + y*y + z*z).toFloat
 
+  def load (v: Vector3) {
+    x = v.x
+    y = v.y
+    z = v.z
+  }
+
   def normalize () : Unit =
     if (this.length() == 0) 
       throw new Error ("Trying to normalize a zero-length vector") 

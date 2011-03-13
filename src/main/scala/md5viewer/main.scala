@@ -6,7 +6,7 @@ import engine._
 object Main extends FrameListener {
   val camera = new Camera();
 
-  val mouseController = new CameraFPSMouseController(camera)
+  val mouseController = new CameraFPSMouseController(camera, 0.001f)
   var keyboardController = new CameraFPSKeyboardController(camera)
   
   def main(args: Array[String]) {

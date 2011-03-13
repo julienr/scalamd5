@@ -13,6 +13,20 @@ class Matrix4 {
 
   def update(row: Int, col: Int, v: Float) = data.put(col*4+row, v)
   def apply (row: Int, col: Int) = data.get(col*4+row)
+
+  override def toString () : String = {
+    var s = "\n"
+
+    for (i <- Range(0,4)) {
+      s += "["
+      for (j <- Range(0,4)) {
+        s += ""+this(i,j)+" "
+      }
+      s+= "]\n"
+    }
+    s
+  }
+
 }
 
 // vim: set ts=2 sw=2 et:

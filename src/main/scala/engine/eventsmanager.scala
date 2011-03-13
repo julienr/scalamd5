@@ -7,8 +7,6 @@ import utils._
 import scala.collection.mutable.HashMap
 
 object EventsManager {
-  var mousePrevPos = new Vector2(0,0)
-
   type KeyCallback = Int => Unit
   type MouseClickCallback = () => Unit
   //First argument is previous position, second is new
@@ -50,6 +48,7 @@ object EventsManager {
     mouseMoveCallback = callback
   }
 
+
   def handleEvents = {
     // handle a single keyboard event
     def handleKeyEvent (state:Boolean, event: Int): Unit = {
@@ -82,6 +81,7 @@ object EventsManager {
     }
 
     //Mouse events
+    val screenCenter = Vector2(Renderer.realWidth/2, Renderer.realHeight/2)
     hasEvent = Mouse.next
     while (hasEvent) {
       val button = Mouse.getEventButton
@@ -92,12 +92,12 @@ object EventsManager {
         mouseClickCallbacks(button)()
 
       //There has been a movement
-      if (!((newPos-mousePrevPos) ~= (0.0f, 0.0f))) {
+      if (!((newPos-screenCenter) ~= (0.0f, 0.0f))) {
           if (mouseMoveCallback != null)
-            mouseMoveCallback(mousePrevPos, newPos)
-          mousePrevPos = newPos
+            mouseMoveCallback(screenCenter, newPos)
       }
       hasEvent = Mouse.next
     }
+    Mouse.setCursorPosition(screenCenter.x.toInt, screenCenter.y.toInt)
   }
 }

@@ -28,28 +28,23 @@ class Camera () {
   
   var id : Int = CamID.getNewID
   
-  //holds mouse rotation
-  var totX : Double = 0.0d
-  var totY : Double = 0.0d
-  
   /**
   * Rotate the camera from mouse displacement
   * @param rx relative horizontal movement of mouse
   * @param ry relative vertical movement of mouse
   */
-  def rotateFromMouse (rx: Int, ry: Int) = {
-    val sensitivity = 0.005d
+  /*def rotateFromMouse (rx: Int, ry: Int) = {
     totX -= rx.toDouble*sensitivity
     totY -= ry.toDouble*sensitivity
     //make sure the player can't do 2pi rotations 
     //FIXME: shouldn't it be a parameter of the camera ?
-    //totX = cap[Real](totX.toFloat, -TG_PI_2, TG_PI_2).toDouble
+    totX = MathUtils.clamp(totX.toFloat, -TG_PI_2, TG_PI_2).toFloat
     val qY = new Quaternion(totY.toFloat, Vector3(0,1,0))
     val qX = new Quaternion(totX.toFloat, Vector3(1,0,0))
     rotation = (qY*qX).getNormalized
     
     invalidateView
-  }
+  }*/
 
   //Once this Camera is registered to the Renderer, this will get called when
   //aspect ratio changes
@@ -59,7 +54,12 @@ class Camera () {
   }
 
   def setPosition (v: Vector3) = {
-    position = v
+    position.load(v)
+    invalidateView
+  }
+
+  def setRotation (q: Quaternion) {
+    rotation.load(q)
     invalidateView
   }
 

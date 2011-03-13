@@ -17,6 +17,11 @@ class Vector2 (ax: Float, ay: Float) {
     x /= l
     y /= l
   }
+
+  def load (v: Vector2) {
+    x = v.x
+    y = v.y
+  }
   
   def * (a: Float) : Vector2 = new Vector2(a*x, a*y)
 

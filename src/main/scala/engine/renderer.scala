@@ -23,7 +23,7 @@ object Renderer {
   def initialize (w: Int, h: Int) {
     //initialization code
     GL11.glClearColor(0.2f, 0.2f, 0.2f, 1.0f)
-    GL11.glDisable(GL11.GL_DEPTH_TEST)
+    GL11.glEnable(GL11.GL_DEPTH_TEST)
     GL11.glDisable(GL11.GL_LIGHTING)
     GL11.glDisable(GL11.GL_DITHER)
 /*    GL11.glEnable(GL11.GL_BLEND)
@@ -31,8 +31,8 @@ object Renderer {
     resizeWindow(w,h)
   }
 
-  var realWidth = 0
-  var realHeight = 0
+  var realWidth : Int = 0
+  var realHeight : Int = 0
   
   /**
   * Must be called when the window containing the gl context
@@ -48,7 +48,7 @@ object Renderer {
 
     realWidth = w
     realHeight = h
-    GL11.glViewport(0, 0, w.toInt, h.toInt)
+    GL11.glViewport(0, 0, w, h)
     lastRenderedCamera = null //will trigger a perspective recalculation
   }
 
@@ -61,17 +61,7 @@ object Renderer {
     if (err != 0)
       Console.println("GL Error ("+diagString+") : " + GLU.gluErrorString(err))
   }
-
-  def printMatrix (matrix: java.nio.FloatBuffer) {
-    for (i <- Range(0,4)) {
-      Console.printf("[")
-      for (j <- Range(0,4)) {
-        Console.printf("%f ", matrix.get(i*4+j))
-      }
-      Console.printf("]\n")
-    }
-  }
-
+ 
   def drawPyramid () {
     GL11.glBegin( GL11.GL_TRIANGLES );             
     GL11.glColor3f(   1.0f,  0.0f,  0.0f ); 
@@ -117,9 +107,8 @@ object Renderer {
     GL11.glLoadIdentity
 
     val matrix = cam.rotation.getConjugate.getMatrix
-    /*Console.println("camera rotation : ")
-    printMatrix(matrix)
-
+    //Console.println("camera rotation : " + matrix)
+/*
     Console.println("current modelview : ")
     GL11.glGetFloat(GL11.GL_MODELVIEW_MATRIX, matrix)
     printMatrix(matrix)
