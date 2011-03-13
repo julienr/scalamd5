@@ -14,6 +14,8 @@ object EventsManager {
   //First argument is previous position, second is new
   type MouseMoveCallback = (Vector2, Vector2) => Unit
 
+  private var keyPressedDefaultCallback: KeyCallback = null
+  private var keyReleasedDefaultCallback: KeyCallback = null
   private val keyPressedCallbacks = new HashMap[Int, KeyCallback]
   private val keyReleasedCallbacks = new HashMap[Int, KeyCallback]
   private val mouseClickCallbacks = new HashMap[Int, MouseClickCallback]
@@ -28,6 +30,9 @@ object EventsManager {
       throw new Exception ("Trying to override callback for k="+k+" in reg :"+reg)
     reg(k) = callback
   }
+
+  def registerDefaultKeyPressedCallback (callback: KeyCallback) = keyPressedDefaultCallback = callback
+  def registerDefaultKeyReleasedCallback (callback: KeyCallback) = keyReleasedDefaultCallback = callback
 
   def registerKeyPressedCallback (key: Int, callback: KeyCallback) = _assignCallback(keyPressedCallbacks, key, callback)
   def registerKeyReleasedCallback (key: Int, callback: KeyCallback) = _assignCallback(keyReleasedCallbacks, key, callback)
@@ -48,15 +53,23 @@ object EventsManager {
   def handleEvents = {
     // handle a single keyboard event
     def handleKeyEvent (state:Boolean, event: Int): Unit = {
-      if (state) { //key down
+      if (state) { //key pressed
         event match {
           case Keyboard.KEY_ESCAPE => Kernel.loop = false
-          case _ => if (keyPressedCallbacks.contains(event)) keyPressedCallbacks(event)(event)
+          case _ => 
+            if (keyPressedCallbacks.contains(event)) 
+              keyPressedCallbacks(event)(event)
+            else if (keyPressedDefaultCallback != null)
+              keyPressedDefaultCallback(event)
         }
       } else {
         event match {
           case Keyboard.KEY_ESCAPE => 
-          case _ => if (keyReleasedCallbacks.contains(event)) keyReleasedCallbacks(event)(event)
+          case _ => 
+            if (keyReleasedCallbacks.contains(event)) 
+              keyReleasedCallbacks(event)(event)
+            else if (keyReleasedDefaultCallback != null)
+              keyReleasedDefaultCallback(event)
         }
       }
     }

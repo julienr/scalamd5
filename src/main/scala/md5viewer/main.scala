@@ -5,11 +5,16 @@ import engine._
 
 object Main extends FrameListener {
   val camera = new Camera();
+
+  val mouseController = new CameraFPSMouseController(camera)
+  var keyboardController = new CameraFPSKeyboardController(camera)
   
   def main(args: Array[String]) {
     Kernel.initialize(args)
     Renderer.registerCamera(camera)
     camera.setPosition(Vector3(1.5f,0,8))
+    mouseController.registerToEventsManager()
+    keyboardController.registerToEventsManager()
     Kernel.mainLoop(Unit => this )
   }
 
@@ -25,6 +30,11 @@ object Main extends FrameListener {
 
   @Override
   def move (elapsedTime: Float) {
+    keyboardController.control(elapsedTime, 5.0f)
     //System.out.println("Move : " + elapsedTime);
   }
+
+  def onMouseMove (oldPos: Vector2, newPos: Vector2) {
+  }
+
 }

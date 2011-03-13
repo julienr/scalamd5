@@ -147,25 +147,25 @@ class Quaternion(ar: Float, ax: Float, ay: Float, az: Float) {
   //returns it in column-major format
   def getMatrix : Matrix4 = {
     val m = new Matrix4()
-    m.set(0, 0, 1.0f - 2.0f*(y*y+z*z))
-    m.set(1, 0, 2.0f*(x*y+z*r))
-    m.set(2, 0, 2.0f*(x*z-y*r))
-    m.set(3, 0, 0.0f)
+    m(0, 0) = 1.0f - 2.0f*(y*y+z*z)
+    m(1, 0) = 2.0f*(x*y+z*r)
+    m(2, 0) = 2.0f*(x*z-y*r)
+    m(3, 0) = 0.0f
 
-    m.set(0, 1, 2.0f*(x*y-z*r))
-    m.set(1, 1, 1.0f - 2.0f*(x*x+z*z))
-    m.set(2, 1, 2.0f*(z*y+x*r))
-    m.set(3, 1, 0.0f)
+    m(0, 1) = 2.0f*(x*y-z*r)
+    m(1, 1) = 1.0f - 2.0f*(x*x+z*z)
+    m(2, 1) = 2.0f*(z*y+x*r)
+    m(3, 1) = 0.0f
 
-    m.set(0, 2, 2.0f*(x*z+y*r))
-    m.set(1, 2, 2.0f*(y*z-x*r))
-    m.set(2, 2, 1.0f - 2.0f*(x*x+y*y))
-    m.set(3, 2, 0.0f)
+    m(0, 2) = 2.0f*(x*z+y*r)
+    m(1, 2) = 2.0f*(y*z-x*r)
+    m(2, 2) = 1.0f - 2.0f*(x*x+y*y)
+    m(3, 2) = 0.0f
 
-    m.set(0, 3, 0.0f)
-    m.set(1, 3, 0.0f)
-    m.set(2, 3, 0.0f)
-    m.set(3, 3, 1.0f)
+    m(0, 3) = 0.0f
+    m(1, 3) = 0.0f
+    m(2, 3) = 0.0f
+    m(3, 3) = 1.0f
     m
   }
 
