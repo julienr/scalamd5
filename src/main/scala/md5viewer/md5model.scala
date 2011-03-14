@@ -22,6 +22,7 @@ protected class Weight(val jointIndex: Int, val bias: Float, val w: Vector3) {
 
 
 protected class Mesh(val shader: String, val verts: List[Vert], val tris: List[Tri], val weights: List[Weight]) {
+  Console.println(shader)
 
 }
 
@@ -29,7 +30,8 @@ class MD5Model(val version: Int, val commandLine: String, val joints: List[Joint
   val rotation = Quaternion(-MathUtils.PI_2, Vector3(1,0,0))*Quaternion(-MathUtils.PI_2, Vector3(0,0,1))
   buildJointsHierarchy()
   val vertBuffer = skinMesh(meshes(0))
-  val indicesBuffer = indicesToBuffer(meshes(0))
+  val indicesBuffer = createIndicesBuffer(meshes(0))
+  val texCoordsBuffer = createTexCoordsBuffer(meshes(0))
 
   private def buildJointsHierarchy () {
     val baseJoints = new MutableList[Joint]
@@ -43,7 +45,7 @@ class MD5Model(val version: Int, val commandLine: String, val joints: List[Joint
     }
   }
 
-  def indicesToBuffer (m: Mesh) : IntBuffer = {
+  def createIndicesBuffer (m: Mesh) : IntBuffer = {
     val buff = BufferUtils.createIntBuffer(m.tris.length*3)
     for (tri <- m.tris) {
       buff.put(tri.indices)
@@ -52,8 +54,17 @@ class MD5Model(val version: Int, val commandLine: String, val joints: List[Joint
     buff
   }
 
+  def createTexCoordsBuffer (m: Mesh) : FloatBuffer = {
+    val texCoordsBuff = BufferUtils.createFloatBuffer(m.verts.length*2)
+    for (i <- 0 until m.verts.length) {  
+      texCoordsBuff.put(m.verts(i).texCoordU)
+      texCoordsBuff.put(m.verts(i).texCoordV)
+    }
+    texCoordsBuff
+  }
+
   def skinMesh (m: Mesh) : FloatBuffer = {
-    val buff = BufferUtils.createFloatBuffer(m.verts.length*3)
+    val vertBuff = BufferUtils.createFloatBuffer(m.verts.length*3)
 
     for (i <- 0 until m.verts.length) {  
       var vertice = Vector3(0,0,0)
@@ -66,28 +77,29 @@ class MD5Model(val version: Int, val commandLine: String, val joints: List[Joint
         vertice += pos
       }
 
-      buff.put(vertice.x)
-      buff.put(vertice.y)
-      buff.put(vertice.z)
-//      Console.printf("vert (%d) = %s\n", i, vertice)
+      vertBuff.put(vertice.x)
+      vertBuff.put(vertice.y)
+      vertBuff.put(vertice.z)
     }
-    buff.rewind()
-    buff
+    vertBuff.rewind()
+    vertBuff
   }
 
   def draw () {
     glPushMatrix()
     Renderer.applyRotation(rotation)
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
     glPointSize(4.0f)
     glColor4f(1,1,1,1)
     glEnableClientState(GL_VERTEX_ARRAY)
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY)
     vertBuffer.rewind()
     glVertexPointer(3, 0, vertBuffer)
-    //glDrawArrays(GL_POINTS, 0, meshes(0).verts.length)
+    glTexCoordPointer(2, 0, texCoordsBuffer)
     glDrawElements(GL_TRIANGLES, indicesBuffer)
     glDisableClientState(GL_VERTEX_ARRAY)
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY)
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
     glPopMatrix()
   }
 }
