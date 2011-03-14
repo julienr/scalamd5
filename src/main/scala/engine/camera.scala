@@ -15,9 +15,14 @@ private object CamID {
 }
 
 class Camera () {
-  private var rotation = new Quaternion(0.0f, Vector3(0,1,0))
+  //this is just used as a cache, the real rotation is pitch/heading below
+  private var _rotation = new Quaternion(0.0f, Vector3(0,1,0))
   private var position = new Vector3
   private var frustum : Frustum = null
+
+  private var pitch : Float = 0.0f //rotation around x axis
+  private var heading : Float = 0.0f //rotation around y axis
+  private var roll : Float = 0.0f //rotation around z axis
   
   val hFov : Float = 90.0f
   //var vFov : Float = 0.0f
@@ -50,20 +55,47 @@ class Camera () {
   //aspect ratio changes
   def aspectRatioChanged (newAR: Float) {
     aspectRatio = newAR
-    invalidateView
+    invalidate
   }
 
   def setPosition (v: Vector3) = {
     position.load(v)
-    invalidateView
+    invalidate
   }
 
-  def setRotation (q: Quaternion) {
+  /*def setRotation (q: Quaternion) {
     rotation.load(q)
     invalidateView
+  }*/
+
+  def setPitch (p : Float ) {
+    pitch = p
+    invalidate
+  }
+  
+  def setHeading (h: Float) {
+    heading = h
+    invalidate
   }
 
-  def getRotation = rotation
+  def setRoll (r: Float) {
+    roll = r
+    invalidate
+  }
+
+  def changePitch (p: Float) {
+    pitch += p
+    invalidate
+  }
+
+  def changeHeading (h: Float) {
+    heading += h
+    invalidate
+  }
+
+  def getRotation = _rotation
+
+  
   def getPosition = position
 
   /**
@@ -72,7 +104,7 @@ class Camera () {
   */
   def move (v: Vector3) = {
     position += v
-    invalidateView
+    invalidate
   }
   
   /**
@@ -80,14 +112,21 @@ class Camera () {
   * @param v the movement relative to the camera's local axis
   */
   def moveRelative (v: Vector3) = {
-    position += rotation.rotate(v)
-    invalidateView
+    position += getRotation.rotate(v)
+    invalidate
   }
   
   /** 
   * Recreate the frustum plane after a movement/rotation of the camera
   */
-  private def invalidateView = {
+  private def invalidate = {
+    //calculate new rotation
+    pitch = MathUtils.clamp(pitch, -MathUtils.PI_2, MathUtils.PI_2).toFloat
+    val qX = new Quaternion(pitch, Vector3(1,0,0))
+    val qY = new Quaternion(-heading, Vector3(0,1,0))
+    val qZ = new Quaternion(roll, Vector3(0,0,1))
+    _rotation = (qZ*qY*qX).getNormalized
+
     // calculate new frustum planes, standard OpenGL is assumed, that is :
     // - x poInts right
     // - y poInts upward
@@ -97,15 +136,15 @@ class Camera () {
     //vFov = 2.0f*scala.math.atan(aspectRatio/e).toFloat
     
     //Frustum planes are in world coordinates
-    val localZ = rotation.zAxis
+    val localZ = getRotation.zAxis
 
     frustum = new Frustum(position, 
-          new Plane(position-(localZ*zNear), rotation.rotate(new Vector3(0,0,-1))), //near
-          new Plane(position-(localZ*zFar), rotation.rotate(new Vector3(0,0,1))), //far
-          new Plane(position, rotation.rotate(new Vector3(e,0,-1))):: //left
-          new Plane(position, rotation.rotate(new Vector3(-e, 0, -1))):: //right
-          new Plane(position, rotation.rotate(new Vector3(0, -e, -aspectRatio))):: //top
-          new Plane(position, rotation.rotate(new Vector3(0, e, -aspectRatio)))::Nil) //bottom
+          new Plane(position-(localZ*zNear), getRotation.rotate(new Vector3(0,0,-1))), //near
+          new Plane(position-(localZ*zFar), getRotation.rotate(new Vector3(0,0,1))), //far
+          new Plane(position, getRotation.rotate(new Vector3(e,0,-1))):: //left
+          new Plane(position, getRotation.rotate(new Vector3(-e, 0, -1))):: //right
+          new Plane(position, getRotation.rotate(new Vector3(0, -e, -aspectRatio))):: //top
+          new Plane(position, getRotation.rotate(new Vector3(0, e, -aspectRatio)))::Nil) //bottom
     
   }
   
@@ -147,11 +186,11 @@ class Camera () {
     
     //transform to go from cam space to model space
     GL11.glTranslatef(position.x, position.y, position.z)
-    val matrix = rotation.getMatrix
+    val matrix = getRotation.getMatrix
     GL11.glMultMatrix(matrix.getFloatBuffer)
     
     //draw cam space axis
-    Renderer.drawAxis(position, rotation, 5.0f)
+    Renderer.drawAxis(position, getRotation, 5.0f)
     
     GL11.glColor3f(0.0f,0.0f,1.0f)
     GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE)
@@ -207,7 +246,7 @@ class Camera () {
     * planes in the frustum struct are given in world coords, so inverse the rotation to get
     * them back in local coords
     */
-    def _drawNormal0(middle: Vector3, norm: Vector3) : Unit = Renderer.drawLine(middle, middle + rotation.getConjugate.rotate(norm*5), COL_BLACK, 1.0f)
+    def _drawNormal0(middle: Vector3, norm: Vector3) : Unit = Renderer.drawLine(middle, middle + getRotation.getConjugate.rotate(norm*5), COL_BLACK, 1.0f)
     def _drawNormal(middle: Vector3, planeNum: Int) : Unit = _drawNormal0(middle, frustum.sidePlanes(planeNum).normal)
 
     //left 

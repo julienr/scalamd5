@@ -16,7 +16,7 @@ object Main extends FrameListener {
     Kernel.initialize(args)
     Renderer.registerCamera(camera)
     camera.setPosition(Vector3(-40,106,128))
-    camera.setRotation(Quaternion(0.51f, Vector3(-0.80f, -0.58f, -0.12f)))
+//    camera.setRotation(Quaternion(0.51f, Vector3(-0.80f, -0.58f, -0.12f)))
     mouseController.registerToEventsManager()
     keyboardController.registerToEventsManager()
 

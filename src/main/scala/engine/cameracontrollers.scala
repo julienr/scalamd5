@@ -9,20 +9,28 @@ class CameraFPSMouseController (cam: Camera, sensi: Float) {
   var sensitivity = sensi
   
   //holds mouse rotation
-  var totX : Float = 0.0f
-  var totY : Float = 0.0f
+  /*var totX : Float = 0.0f
+  var totY : Float = 0.0f*/
 
   def onMouseMove (oldPos: Vector2, newPos: Vector2) {
     //Console.println("Mouse move from " + oldPos + " to " + newPos)
     val d = newPos-oldPos
     
-    totX -= d.y*sensitivity
+    val rX = d.y*sensitivity
+    val rY = d.x*sensitivity
+    cam.changePitch(rX)
+    cam.changeHeading(rY)
+    /*val qX = Quaternion(rX, Vector3(1,0,0))
+    val qY = Quaternion(-rY, Vector3(0,1,0))
+    cam.setRotation((qX*qY*cam.getRotation).getNormalized)*/
+    
+/*    totX -= d.y*sensitivity
     totY -= d.x*sensitivity
     //Console.println("totX="+totX+", totY="+totY)
     totX = MathUtils.clamp(totX, -MathUtils.PI_2, MathUtils.PI_2).toFloat
     val qX = new Quaternion(-totX.toFloat, Vector3(1,0,0))
     val qY = new Quaternion(totY.toFloat, Vector3(0,1,0))
-    cam.setRotation((qY*qX).getNormalized)
+    cam.setRotation((qY*qX).getNormalized)*/
   }
 
   def registerToEventsManager () {
