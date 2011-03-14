@@ -3,26 +3,6 @@ import utils._
 import scala.util.parsing.combinator._
 import scala.util.matching.Regex
 
-class Joint(val name: String, val parentIndex: Int, val position: Vector3, val rotation: Quaternion) {
-
-}
-
-class Vert(val texCoordU : Float, val texCoordV : Float, val firstWeight: Int, val numWeights: Int) {
-}
-
-class Tri(val indices: Array[Int]) {
-}
-
-class Weight(val boneIndex: Int, val bias: Float, val w: Vector3) {
-}
-
-
-class Mesh(val shader: String, val verts: List[Vert], val tris: List[Tri], val weights: List[Weight]) {
-}
-
-class Model(val version: Int, val commandLine: String, val joints: List[Joint], val meshes: List[Mesh]) {
-}
-
 object MD5Loader {
   class LoadingError(cause: String) extends RuntimeException(cause.toString)
 
@@ -47,10 +27,11 @@ object MD5Loader {
   }
 
 
+  //A parser for MD5 model files. Calling parseAll(model, ...) will return a Model
   class MD5ParserCombinators extends JavaTokenParsers {
     def model = version ~ commandline ~ numJoints ~ numMeshes ~ joints ~ meshes ^^ {
       case v ~ cl ~ numJoints ~ numMeshes ~ joints ~ meshes => {
-        new Model(v, cl, checkNum("numJoints", numJoints, joints), checkNum("numMeshes", numMeshes, meshes))
+        new MD5Model(v, cl, checkNum("numJoints", numJoints, joints), checkNum("numMeshes", numMeshes, meshes))
       }
     }
 
@@ -128,22 +109,6 @@ object MD5Loader {
       str.substring(1, str.length-1)
     }
   }
-
-/*  def load (fileName: String) {
-    val tokenizer = new IterableTokenizer(fileName)
-    def accept (str: String) = tokenizer.accept(str)
-
-    accept("MD5Version")
-    val version = tokenizer.next.toInt
-    accept("commandline")
-    val commandline = tokenizer.next
-    accept("numJoints")
-    val numJoints = tokenizer.next
-    accept("numMeshes")
-    val numMeshes = tokenizer.next
-
-    accept("joints")
-  }*/
 }
 
 // vim: set ts=2 sw=2 et:

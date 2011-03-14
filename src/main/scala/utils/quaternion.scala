@@ -1,6 +1,11 @@
 package utils
 import java.nio._
 
+object Quaternion {
+  //angle in radian
+  def apply (angle: Float, axis: Vector3) = new Quaternion(angle, axis)
+}
+
 class Quaternion(ar: Float, ax: Float, ay: Float, az: Float) {
   var r = ar
   var x = ax
@@ -150,6 +155,20 @@ class Quaternion(ar: Float, ax: Float, ay: Float, az: Float) {
   override def toString : String = {
     val v = new Vector3(x,y,z)
       return "["+v+","+r+"]"
+  }
+
+  def getAngle () : Float = {
+	  return math.acos(r).toFloat*2;
+  }
+
+  def getAxis () : Vector3 = {
+    normalize
+    val cos_a = r
+    val sin_a = math.sqrt(1.0-cos_a*cos_a).toFloat
+    if (math.abs(sin_a) < MathUtils.EPSILON)
+      return Vector3(x, y, z)
+    else
+      return Vector3(x/sin_a, y/sin_a, z/sin_a)
   }
 
   //return the 4*4 rotation matrix that corresponds to this quaternion

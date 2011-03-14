@@ -42,7 +42,7 @@ object Renderer {
   */
   def resizeWindow (w: Int, h: Int) = {
     if (h==0) throw new Error("resizeWindow with h=0")
-    aspectRatio = h.toFloat/w.toFloat
+    aspectRatio = w.toFloat/h.toFloat
 
     cameras.foreach(_.aspectRatioChanged(aspectRatio))
 
@@ -106,7 +106,7 @@ object Renderer {
     GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT)
     GL11.glLoadIdentity
 
-    val matrix = cam.rotation.getConjugate.getMatrix
+    val matrix = cam.getRotation.getConjugate.getMatrix
     //Console.println("camera rotation : " + matrix)
 /*
     Console.println("current modelview : ")
@@ -123,14 +123,15 @@ object Renderer {
     GL11.glGetFloat(GL11.GL_MODELVIEW_MATRIX, modelview)
     printMatrix(modelview)*/
 
-    GL11.glTranslatef(-cam.position.x, -cam.position.y, -cam.position.z);
+    GL11.glTranslatef(-cam.getPosition.x, -cam.getPosition.y, -cam.getPosition.z);
   }
 
   private def updateGLProjFromCamera (cam: Camera) : Unit = {
     GL11.glMatrixMode(GL11.GL_PROJECTION)
     GL11.glLoadIdentity
 
-    GLU.gluPerspective(cam.hFov/2, 3/4.0f, cam.zNear, cam.zFar)
+    Console.println("aspectRatio : " + aspectRatio)
+    GLU.gluPerspective(cam.hFov/2.0f, aspectRatio, cam.zNear, cam.zFar)
     
     //FIXME: replace gluPerspective by our own perspective function
 /*    val nRect = cam.getNearRect
@@ -151,6 +152,18 @@ object Renderer {
     GL11.glEnd
     GL11.glPopAttrib
   }*/
+
+  def drawWorldAxis (size: Float) = {
+    drawLine(Vector3(0,0,0), Vector3(1,0,0)*size, COL_RED, size)
+    drawLine(Vector3(0,0,0), Vector3(0,1,0)*size, COL_GREEN, size)
+    drawLine(Vector3(0,0,0), Vector3(0,0,1)*size, COL_BLUE, size)
+  }
+
+  //Multiply the current matrix by the given rotation
+  def applyRotation (rotation: Quaternion) {
+    val matrix = rotation.getMatrix
+    GL11.glMultMatrix(matrix.getFloatBuffer)
+  }
   
   /**
   * draw coordinates axis, x are red, y are green, z are blue
@@ -162,9 +175,7 @@ object Renderer {
     GL11.glMultMatrix(matrix.getFloatBuffer)
     GL11.glTranslatef(position.x, position.y, position.z)
 
-    drawLine(Vector3(0,0,0), Vector3(1,0,0)*size, COL_RED, size)
-    drawLine(Vector3(0,0,0), Vector3(0,1,0)*size, COL_GREEN, size)
-    drawLine(Vector3(0,0,0), Vector3(0,0,1)*size, COL_BLUE, size)
+    drawWorldAxis(size)
 
     GL11.glPopMatrix
   }

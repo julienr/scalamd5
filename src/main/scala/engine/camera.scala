@@ -15,15 +15,15 @@ private object CamID {
 }
 
 class Camera () {
-  var rotation = new Quaternion(0.0f, Vector3(0,1,0))
-  var position = new Vector3
-  var frustum : Frustum = null
+  private var rotation = new Quaternion(0.0f, Vector3(0,1,0))
+  private var position = new Vector3
+  private var frustum : Frustum = null
   
-  var hFov : Float = 90.0f
+  val hFov : Float = 90.0f
   //var vFov : Float = 0.0f
   var aspectRatio : Float = 4.0f/3.0f
   var zNear : Float = 0.1f //zNear MUST be positive
-  var zFar : Float = 100.0f //zFar MUST be positive
+  var zFar : Float = 1000.0f //zFar MUST be positive
   var e : Float = 0.0f //focal length
   
   var id : Int = CamID.getNewID
@@ -62,6 +62,9 @@ class Camera () {
     rotation.load(q)
     invalidateView
   }
+
+  def getRotation = rotation
+  def getPosition = position
 
   /**
   * Move the camera with a movement expressed in world coordinates

@@ -37,13 +37,13 @@ class MD5ParserCombinatorsSpec extends WordSpec with ShouldMatchers {
           shader "blahShader"
 
           numverts 1
-          vert 0 ( 0.5 0.5 ) 1 4
+          vert 0 ( 0.5 0.5 ) 0 1
 
           numtris 1
-          tri 1 2 3 4
+          tri 0 2 3 4
 
           numweights 1
-          weight 1 2 3.3 ( 0.5 0.3 0.7 )
+          weight 0 0 3.3 ( 0.5 0.3 0.7 )
         }
         """
       val p = new MD5Loader.MD5ParserCombinators
@@ -70,20 +70,18 @@ class MD5ParserCombinatorsSpec extends WordSpec with ShouldMatchers {
           val v = mesh.verts(0)
           v.texCoordU should equal(0.5)
           v.texCoordV should equal(0.5)
-          v.firstWeight should equal(1)
-          v.numWeights should equal(4)
+          v.firstWeight should equal(0)
+          v.numWeights should equal(1)
 
           mesh.tris.length should equal(1)
           mesh.tris(0).indices should equal(List(2,3,4).toArray)
 
           mesh.weights.length should equal(1)
           val w = mesh.weights(0)
-          w.boneIndex should equal(2)
+          w.jointIndex should equal(0)
           w.bias should equal(3.3f)
           assert(w.w ~= Vector3(0.5f,0.3f,0.7f))
         }
-
-        //Console.println(r) /*r.toString should equal("""(((((10~"blah")~1)~1)~List(((("origin"~-1)~((0~0)~0))~((-0.5~-0.5)~-0.5))))~List(((("blahShader"~(1~List(0)))~(1~List((((1~2)~3)~4))))~(1~List((((1~2)~3)~((0.5~0.3)~0.7)))))))""")*/
         case x => fail(x.toString)
       }
     }

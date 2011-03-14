@@ -1,10 +1,11 @@
 package utils
 import java.nio.FloatBuffer
+import org.lwjgl._
 
 //A matrix backed by a FloatBuffer, to be used with OpenGL
 class Matrix4 {
   //stores data in column-major order
-  private val data = FloatBuffer.allocate(16)
+  private val data = BufferUtils.createFloatBuffer(16)
 
   //returns a float buffer containing the elements of this matrix. DO NOT modify
   //this buffer directly as this might impact the matrix
