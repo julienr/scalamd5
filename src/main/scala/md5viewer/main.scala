@@ -16,14 +16,15 @@ object Main extends FrameListener {
     Kernel.initialize(args)
     Renderer.registerCamera(camera)
     camera.setPosition(Vector3(-40,106,128))
-//    camera.setRotation(Quaternion(0.51f, Vector3(-0.80f, -0.58f, -0.12f)))
+    camera.setPitch(-0.39f)
+    camera.setHeading(0.31f)
     mouseController.registerToEventsManager()
     keyboardController.registerToEventsManager()
 
     EventsManager.registerKeyPressedCallback(Keyboard.KEY_P, k => {
         //Dump camera informations
         Console.println("camera rotation : " + camera.getRotation.getMatrix)
-        Console.println("camera rotation (quat) : angle="+camera.getRotation.getAngle()+", axis="+camera.getRotation.getAxis())
+        Console.printf("camera rotation (pitch=%f, heading=%f, roll=%f)\n", camera.getPitch(), camera.getHeading(), camera.getRoll())
         Console.println("camera position : " + camera.getPosition)
     })
 
