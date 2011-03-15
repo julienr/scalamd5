@@ -1,6 +1,7 @@
 package md5viewer
 
 import org.lwjgl.input.Keyboard
+import org.lwjgl.opengl.GL11._
 import utils._
 import engine._
 
@@ -58,8 +59,10 @@ object Main extends FrameListener {
   @Override
   def move (elapsedTime: Float) {
     keyboardController.control(elapsedTime, 20.0f)
-    if (anim != null)
+    if (anim != null) {
       anim.animate(model, elapsedTime)
+    }
+    FPSCounter.countFrame(elapsedTime)
     //System.out.println("Move : " + elapsedTime);
   }
 

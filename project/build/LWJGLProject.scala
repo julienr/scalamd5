@@ -8,7 +8,6 @@ import java.io.File
 class LWJGLProject(info: ProjectInfo) extends DefaultProject(info) with de.tuxed.codefellow.plugin.CodeFellowPlugin {
   val scalatest = "org.scalatest"%"scalatest"%"1.3"
 
-
   // to specify new runJVMOptions we need to fork the execution    
   override def fork = Some(new ForkScalaRun {
     val (os, separator) = System.getProperty("os.name").split(" ")(0).toLowerCase match {
