@@ -5,6 +5,8 @@ import java.nio._
 import org.lwjgl.opengl.GL11._
 import org.lwjgl._
 import engine._
+import org.newdawn.slick.opengl._
+import java.io.FileInputStream
 
 protected class Joint(val name: String, val parentIndex: Int, val position: Vector3, val rotation: Quaternion) {
   val children = new MutableList[Joint]
@@ -21,8 +23,18 @@ protected class Weight(val jointIndex: Int, val bias: Float, val w: Vector3) {
 }
 
 
-protected class Mesh(val shader: String, val verts: List[Vert], val tris: List[Tri], val weights: List[Weight]) {
-  Console.println(shader)
+protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tri], val weights: List[Weight]) {
+  val shader = "models/".r.replaceAllIn(rawShader, "data/textures/")
+  val colorTex = TextureLoader.getTexture("TGA", new FileInputStream(shader+"_d.tga"))
+
+  Console.println("Texture loaded: "+colorTex);
+  Console.out.println(">> Image width: "+colorTex.getImageWidth());
+  Console.out.println(">> Image height: "+colorTex.getImageWidth());
+  Console.out.println(">> Texture width: "+colorTex.getTextureWidth());
+  Console.out.println(">> Texture height: "+colorTex.getTextureHeight());
+  Console.out.println(">> Texture ID: "+colorTex.getTextureID());
+
+  Console.println("shader : " + shader)
 
 }
 
@@ -56,9 +68,9 @@ class MD5Model(val version: Int, val commandLine: String, val joints: List[Joint
 
   def createTexCoordsBuffer (m: Mesh) : FloatBuffer = {
     val texCoordsBuff = BufferUtils.createFloatBuffer(m.verts.length*2)
-    for (i <- 0 until m.verts.length) {  
-      texCoordsBuff.put(m.verts(i).texCoordU)
-      texCoordsBuff.put(m.verts(i).texCoordV)
+    for (vert <- m.verts) {  
+      texCoordsBuff.put(vert.texCoordU)
+      texCoordsBuff.put(vert.texCoordV)
     }
     texCoordsBuff
   }
@@ -89,16 +101,19 @@ class MD5Model(val version: Int, val commandLine: String, val joints: List[Joint
     glPushMatrix()
     Renderer.applyRotation(rotation)
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
-    glPointSize(4.0f)
     glColor4f(1,1,1,1)
     glEnableClientState(GL_VERTEX_ARRAY)
     glEnableClientState(GL_TEXTURE_COORD_ARRAY)
+    glEnable(GL_TEXTURE_2D)
+    meshes(0).colorTex.bind()
     vertBuffer.rewind()
     glVertexPointer(3, 0, vertBuffer)
+    texCoordsBuffer.rewind()
     glTexCoordPointer(2, 0, texCoordsBuffer)
     glDrawElements(GL_TRIANGLES, indicesBuffer)
     glDisableClientState(GL_VERTEX_ARRAY)
     glDisableClientState(GL_TEXTURE_COORD_ARRAY)
+    glDisable(GL_TEXTURE_2D)
     //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
     glPopMatrix()
   }
