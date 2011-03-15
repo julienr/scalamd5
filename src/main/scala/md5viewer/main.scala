@@ -13,6 +13,10 @@ object Main extends FrameListener {
   var model : MD5Model = null
   
   def main(args: Array[String]) {
+    if (args.length < 1) {
+      Console.println("Usage : <md5mesh directory>")
+      return
+    }
     Kernel.initialize(args)
     Renderer.registerCamera(camera)
     camera.setPosition(Vector3(-40,106,128))
@@ -28,12 +32,7 @@ object Main extends FrameListener {
         Console.println("camera position : " + camera.getPosition)
     })
 
-    val p = new MD5Loader.MD5ParserCombinators
-    val lines = io.Source.fromFile("data/imp.md5mesh").mkString
-    p.parseAll(p.model, MD5Loader.removeComments(lines)) match {
-      case p.Success(m,_) =>  model = m
-      case x => throw new Exception("Error loading : " + x)
-    }
+    model = MD5Loader.loadFromDirectory(args(0))
 
     Kernel.mainLoop(Unit => this )
   }

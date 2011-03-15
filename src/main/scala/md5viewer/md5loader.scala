@@ -2,13 +2,14 @@ package md5viewer
 import utils._
 import scala.util.parsing.combinator._
 import scala.util.matching.Regex
+import java.io._
 
 object MD5Loader {
   class LoadingError(cause: String) extends RuntimeException(cause.toString)
 
   def removeComments (text: String) : String = {
-    val regexp = """//.*\n""".r
-    return regexp.replaceAllIn(text, "\n")
+    val regexp = """(?m)//.*$""".r
+    return regexp.replaceAllIn(text, "")
   }
 
   //MD5 store a compressed quaternion (only x, y and z). Have to compute R
@@ -26,9 +27,26 @@ object MD5Loader {
     loaded
   }
 
+  //Will load the first .md5mesh file from the given directory
+  def loadFromDirectory (dir: String) : MD5Model = {
+    val meshFiles = new File(dir).listFiles(new FilenameFilter() {
+      def accept (dir: File, name: String) = name.endsWith(".md5mesh")
+    })
+    if (meshFiles.length == 0)
+      throw new LoadingError("No .md5mesh found in [" + dir+"]")
+
+    val lines = io.Source.fromFile(meshFiles(0)).mkString
+    val p = new MD5ModelParser
+    val model = p.parseAll(p.model, MD5Loader.removeComments(lines)) match {
+      case p.Success(m,_) => m
+      case x => throw new Exception("Error loading : " + x)
+    }
+    model
+  }
+
 
   //A parser for MD5 model files. Calling parseAll(model, ...) will return a Model
-  class MD5ParserCombinators extends JavaTokenParsers {
+  class MD5ModelParser extends JavaTokenParsers {
     def model = version ~ commandline ~ numJoints ~ numMeshes ~ joints ~ meshes ^^ {
       case v ~ cl ~ numJoints ~ numMeshes ~ joints ~ meshes => {
         new MD5Model(v, cl, checkNum("numJoints", numJoints, joints), checkNum("numMeshes", numMeshes, meshes))

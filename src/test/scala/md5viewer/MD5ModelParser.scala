@@ -4,8 +4,8 @@ import org.scalatest._
 import org.scalatest.matchers._
 import utils._
 
-class MD5ParserCombinatorsSpec extends WordSpec with ShouldMatchers {
-  "MD5ParserCombinators" should {
+class MD5ModelParserSpec extends WordSpec with ShouldMatchers {
+  "MD5ModelParser" should {
     "correctly remove comments" in {
       val input = 
         """
@@ -46,7 +46,7 @@ class MD5ParserCombinatorsSpec extends WordSpec with ShouldMatchers {
           weight 0 0 3.3 ( 0.5 0.3 0.7 )
         }
         """
-      val p = new MD5Loader.MD5ParserCombinators
+      val p = new MD5Loader.MD5ModelParser
       p.parseAll(p.model, MD5Loader.removeComments(input)) match {
         case p.Success(m,_) => {
           m.version should equal(10)
