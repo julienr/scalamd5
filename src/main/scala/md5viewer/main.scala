@@ -11,6 +11,7 @@ object Main extends FrameListener {
   var keyboardController = new CameraFPSKeyboardController(camera)
 
   var model : MD5Model = null
+  var anim : MD5Anim = null
   
   def main(args: Array[String]) {
     if (args.length < 1) {
@@ -33,6 +34,10 @@ object Main extends FrameListener {
     })
 
     model = MD5Loader.loadFromDirectory(args(0))
+    if (args.length > 1) {
+      anim = MD5Loader.loadAnim(args(1))
+      Console.println("Anim loaded")
+    }
 
     Kernel.mainLoop(Unit => this )
   }
@@ -53,6 +58,8 @@ object Main extends FrameListener {
   @Override
   def move (elapsedTime: Float) {
     keyboardController.control(elapsedTime, 20.0f)
+    if (anim != null)
+      anim.animate(model, elapsedTime)
     //System.out.println("Move : " + elapsedTime);
   }
 

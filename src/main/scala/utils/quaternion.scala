@@ -17,6 +17,11 @@ class Quaternion(ar: Float, ax: Float, ay: Float, az: Float) {
   def copy (q: Quaternion) : Quaternion = new Quaternion(q.r, q.x, q.y, q.z)
   //angle in radian
   def this (angle: Float, axis: Vector3) = { this(); setRotation(angle, axis); }
+  //compressed normalized quaternion (R calculated from (x,y,z))
+  def this (ax: Float, ay: Float, az: Float) = {
+    this(0.0f, ax, ay, az)
+    computeR()
+  }
 
   def load (q: Quaternion) {
     r = q.r
@@ -196,5 +201,14 @@ class Quaternion(ar: Float, ax: Float, ay: Float, az: Float) {
     m(3, 3) = 1.0f
     m
   }
+
+  //MD5 store a compressed normalized quaternion (only x, y and z). Have to compute R
+  //Since the quaternion is normalized, the value of r is what remains after we have added all the other values
+  def computeR () {
+    val t = 1.0f-(x*x)-(y*y)-(z*z)
+    if (t < 0.0f) r = 0.0f
+    else r = -scala.math.sqrt(t).toFloat
+  }
+
 
 }

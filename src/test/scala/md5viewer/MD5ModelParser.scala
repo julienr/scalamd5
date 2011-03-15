@@ -88,4 +88,45 @@ class MD5ModelParserSpec extends WordSpec with ShouldMatchers {
   }
 }
 
+class MD5AnimParserSpec extends WordSpec with ShouldMatchers {
+  "MD5AnimParser" should {
+    "parse a minimal file" in {
+      val input = """
+      MD5Version 10
+      commandline "anim"
+      numFrames 1
+      numJoints 1
+      frameRate 24
+      numAnimatedComponents 1
+
+      hierarchy {
+        "origin" -1 7 0
+      }
+
+      bounds {
+        ( -1 -1 -1 ) ( 1 1 1 )
+      }
+
+      baseframe {
+        ( 0 0 0 ) ( -0.5 -0.5 -0.5 )
+      }
+
+      frame 0 {
+        0 0 0
+      }
+      """
+      val p = new MD5Loader.MD5AnimParser
+      val anim = p.parseAll(p.anim, MD5Loader.removeComments(input)) match {
+        case p.Success(a,_) => a
+        case x => fail(x.toString)
+      }
+
+      anim.version should equal(10)
+      anim.jointInfos(0).parent should equal(-1)
+      anim.jointInfos(0).flags should equal(7)
+      anim.jointInfos(0).frameIndex should equal(0)
+    }
+  }
+}
+
 // vim: set ts=2 sw=2 et:

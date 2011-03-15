@@ -3,6 +3,7 @@ import utils._
 import scala.util.parsing.combinator._
 import scala.util.matching.Regex
 import java.io._
+import collection.immutable.HashMap
 
 object MD5Loader {
   class LoadingError(cause: String) extends RuntimeException(cause.toString)
@@ -10,13 +11,6 @@ object MD5Loader {
   def removeComments (text: String) : String = {
     val regexp = """(?m)//.*$""".r
     return regexp.replaceAllIn(text, "")
-  }
-
-  //MD5 store a compressed quaternion (only x, y and z). Have to compute R
-  private def computeR (cq: Vector3) : Float = {
-    val t = 1.0f-(cq.x*cq.x)-(cq.y*cq.y)-(cq.z*cq.z)
-    if (t < 0.0f) 0.0f
-    else -scala.math.sqrt(t).toFloat
   }
 
   //Helper function, checks that expected == loaded.length and throw exception if not. Returns loaded on success
@@ -44,34 +38,63 @@ object MD5Loader {
     model
   }
 
+  def loadAnim (file: String) : MD5Anim = {
+    val lines = io.Source.fromFile(file).mkString
+    val p = new MD5AnimParser
+    val anim = p.parseAll(p.anim, MD5Loader.removeComments(lines)) match {
+      case p.Success(a,_) => a
+      case x => throw new Exception("Error loading : " + x)
+    }
+    anim
+  }
+
+  class MD5GenericParser extends JavaTokenParsers {
+    def version = "MD5Version" ~> natNumber
+
+    def commandline = "commandline" ~> quotedString
+
+    //just a shortcut
+    def floatNumber = floatingPointNumber ^^ { _.toFloat }
+    //int >= 0
+    def natNumber = decimalNumber ^^ { _.toInt }
+    //int
+    def intNumber = wholeNumber ^^ { _.toInt }
+
+    def quotedString = stringLiteral ^^ { str => 
+      if (!(str.charAt(0) == '"' && str.charAt(str.length-1) == '"')) {
+        throw new LoadingError("Expected quoted string : " + str)
+      }
+      str.substring(1, str.length-1)
+    }
+
+    def vector3 = "(" ~> floatNumber ~ floatNumber ~ floatNumber <~ ")" ^^ {
+      case x ~ y ~ z => {
+        new Vector3(x,y,z)
+      }
+    }
+  }
+
 
   //A parser for MD5 model files. Calling parseAll(model, ...) will return a Model
-  class MD5ModelParser extends JavaTokenParsers {
+  class MD5ModelParser extends MD5GenericParser {
     def model = version ~ commandline ~ numJoints ~ numMeshes ~ joints ~ meshes ^^ {
       case v ~ cl ~ numJoints ~ numMeshes ~ joints ~ meshes => {
         new MD5Model(v, cl, checkNum("numJoints", numJoints, joints), checkNum("numMeshes", numMeshes, meshes))
       }
     }
-
-    def version = "MD5Version" ~> natNumber
-
-    def commandline = "commandline" ~> quotedString
-
+ 
     def numJoints = "numJoints" ~> natNumber
 
     def numMeshes = "numMeshes" ~> natNumber
 
     def joints = "joints" ~> "{" ~> rep(joint) <~ "}"
 
+    var jointCnt = 0
     def joint = quotedString ~ intNumber ~ vector3 ~ vector3 ^^ {
       case name ~ parent ~ pos ~ compressedQuat => {
-        new Joint(name, parent, pos, new Quaternion(computeR(compressedQuat), compressedQuat.x, compressedQuat.y, compressedQuat.z))
-      }
-    }
-
-    def vector3 = "(" ~> floatNumber ~ floatNumber ~ floatNumber <~ ")" ^^ {
-      case x ~ y ~ z => {
-        new Vector3(x,y,z)
+        val r = new Joint(jointCnt, name, parent, pos, new Quaternion(compressedQuat.x, compressedQuat.y, compressedQuat.z))
+        jointCnt += 1
+        r
       }
     }
 
@@ -112,20 +135,37 @@ object MD5Loader {
         new Weight(boneIndex, bias, w)
       }
     }
+  }
 
-    //just a shortcut
-    def floatNumber = floatingPointNumber ^^ { _.toFloat }
-    //int >= 0
-    def natNumber = decimalNumber ^^ { _.toInt }
-    //int
-    def intNumber = wholeNumber ^^ { _.toInt }
 
-    def quotedString = stringLiteral ^^ { str => 
-      if (!(str.charAt(0) == '"' && str.charAt(str.length-1) == '"')) {
-        throw new LoadingError("Expected quoted string : " + str)
+  class MD5AnimParser extends MD5GenericParser {
+    def anim = version ~ commandline ~ numFrames ~ numJoints ~ frameRate ~ numAnimatedComponents ~ hierarchy ~ bounds ~ baseframe ~ rep(frame) ^^ {
+      case version ~ commandline ~ numFrames ~ numJoints ~ frameRate ~ numAnimatedComponents ~ hierarchy ~ bounds ~ baseFrame ~ frames => {
+        new MD5Anim(version, commandline, hierarchy, baseFrame, frames, frameRate)
       }
-      str.substring(1, str.length-1)
     }
+
+    def numFrames = "numFrames" ~> natNumber
+    def numJoints = "numJoints" ~> natNumber
+    def frameRate = "frameRate" ~> natNumber
+    def numAnimatedComponents = "numAnimatedComponents" ~> natNumber
+
+    def hierarchy = "hierarchy" ~> "{" ~> rep(jointInfo) <~ "}"  
+    def jointInfo = quotedString ~ intNumber ~ intNumber ~ intNumber ^^ {
+      case jointName ~ parent ~ flags ~ frameIndex => new JointInfo(parent, flags, frameIndex)
+    }
+
+    def bounds = "bounds" ~> "{" ~> rep(bound) <~ "}"
+    def bound = vector3 ~ vector3 
+
+    def baseframe = "baseframe" ~> "{" ~> rep(bframe) <~ "}" ^^ { 
+      new BaseFrame(_)
+    }
+    def bframe = vector3 ~ vector3 ^^ {
+      case pos ~ rot => new JointBaseFrame(pos, new Quaternion(rot.x, rot.y, rot.z))
+    }
+
+    def frame = "frame" ~> natNumber ~ "{" ~ rep(floatNumber) <~ "}" ^^ { case frameNum ~ "{" ~ comps => new Frame(comps.toArray) }
   }
 }
 
