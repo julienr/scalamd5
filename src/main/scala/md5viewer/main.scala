@@ -13,6 +13,8 @@ object Main extends FrameListener {
 
   var model : MD5Model = null
   var anim : MD5Anim = null
+
+  var glProgram : GLSLProgram = null
   
   def main(args: Array[String]) {
     if (args.length < 1) {
@@ -34,6 +36,12 @@ object Main extends FrameListener {
         Console.println("camera position : " + camera.getPosition)
     })
 
+    //Load shaders
+    Renderer.checkGLError("Before shaders")
+    val vs = new VertexShader(io.Source.fromFile("data/shaders/vertex.glsl").mkString)
+    val fs = new FragmentShader(io.Source.fromFile("data/shaders/fragment.glsl").mkString)
+    glProgram = new GLSLProgram(vs, fs)
+
     model = MD5Loader.loadFromDirectory(args(0))
     if (args.length > 1) {
       anim = MD5Loader.loadAnim(args(1))
@@ -53,7 +61,9 @@ object Main extends FrameListener {
     Renderer.drawWorldAxis(1);
     //Renderer.drawPyramid()
 
-    model.draw()
+    glProgram.bind()
+    model.draw(glProgram)
+    glProgram.unbind()
   }
 
   @Override

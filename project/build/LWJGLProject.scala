@@ -20,6 +20,5 @@ class LWJGLProject(info: ProjectInfo) extends DefaultProject(info) with de.tuxed
 
     override def runJVMOptions = super.runJVMOptions ++ Seq("-Djava.library.path=" + System.getProperty("java.library.path") + separator + ("lib" / "native" / os))
     override def scalaJars = Seq(buildLibraryJar.asFile, buildCompilerJar.asFile)
-
   })
 }

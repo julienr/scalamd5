@@ -3,6 +3,7 @@ import utils._
 import scala.collection.mutable.MutableList
 import java.nio._
 import org.lwjgl.opengl.GL11._
+import org.lwjgl.opengl.GL13._
 import org.lwjgl._
 import engine._
 import org.newdawn.slick.opengl._
@@ -31,15 +32,21 @@ protected class Weight(val jointIndex: Int, val bias: Float, val w: Vector3) {
 
 protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tri], val weights: List[Weight]) {
   val shader = "models/".r.replaceAllIn(rawShader, "data/textures/")
-  val colorTex = try {
-    TextureLoader.getTexture("TGA", new FileInputStream(shader+"_d.tga"))
-  } catch {
-    case ioe: IOException => null
-  }
+  val colorTex = loadTex(shader+"_d.tga")
+  val localTex = loadTex(shader+"_local.tga")
 
   val vertBuffer = BufferUtils.createFloatBuffer(verts.length*3)
   val indicesBuffer = createIndicesBuffer()
   val texCoordsBuffer = createTexCoordsBuffer()
+
+  def loadTex (file: String) = {
+    try {
+      Console.println("loading : " + file)
+      TextureLoader.getTexture("TGA", new FileInputStream(file))
+    } catch {
+      case ioe: IOException => Console.println(ioe); null
+    }
+  }
 
   def createIndicesBuffer () : IntBuffer = {
     val buff = BufferUtils.createIntBuffer(tris.length*3)
@@ -80,16 +87,28 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
     vertBuffer.rewind()
   }
 
-  def draw () {
-    if (colorTex != null) {
+  def bindTex (unit: Int, texture: Texture) {
+    glActiveTexture(unit)
+    if (texture != null) {
       glEnable(GL_TEXTURE_2D)
-      colorTex.bind()
+      //glBindTexture(GL_TEXTURE_2D, texture.getTextureID())
+      texture.bind()
     } else {
       glDisable(GL_TEXTURE_2D)
     }
+  }
+
+  def draw (glProgram:GLSLProgram) {
+    bindTex(GL_TEXTURE0, colorTex)
+    glProgram.setSamplerUnit("colorTex", 0)
+    bindTex(GL_TEXTURE1, localTex)
+    glProgram.setSamplerUnit("localTex", 1)
     vertBuffer.rewind()
     glVertexPointer(3, 0, vertBuffer)
     texCoordsBuffer.rewind()
+    //We don't need to bind one tex coord array per texture, since they all have the same coords
+    //The shader will take care of using the first tex coord array for all of them
+    glClientActiveTexture(GL_TEXTURE0)
     glTexCoordPointer(2, 0, texCoordsBuffer)
     glDrawElements(GL_TRIANGLES, indicesBuffer)
   }
@@ -123,7 +142,7 @@ class MD5Model(val version: Int, val commandLine: String, val joints: List[Joint
     }
   }
 
-  def draw () {
+  def draw (glProgram: GLSLProgram) {
     glPushMatrix()
     Renderer.applyRotation(rotation)
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
@@ -131,7 +150,7 @@ class MD5Model(val version: Int, val commandLine: String, val joints: List[Joint
     glEnableClientState(GL_VERTEX_ARRAY)
     glEnableClientState(GL_TEXTURE_COORD_ARRAY)
     for (m <- meshes) {
-      m.draw()
+      m.draw(glProgram)
     }
     glDisableClientState(GL_VERTEX_ARRAY)
     glDisableClientState(GL_TEXTURE_COORD_ARRAY)

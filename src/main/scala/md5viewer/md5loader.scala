@@ -71,7 +71,7 @@ object MD5Loader {
       if (!(tr.charAt(0) == '"' && tr.charAt(str.length-1) == '"')) {
         throw new LoadingError("Expected quoted string : " + tr)
       }
-      Console.println(tr)
+      //Console.println(tr)
       tr.substring(1, tr.length-1)
     }
 
