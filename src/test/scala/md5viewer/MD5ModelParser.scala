@@ -22,6 +22,23 @@ class MD5ModelParserSpec extends WordSpec with ShouldMatchers {
         """)
     }
 
+    "not remove // occuring in quoted string" in {
+      val input = 
+        """
+        line "//not a comment" //comment
+        line 2 // blahf comment
+        line 3
+        """
+      val res = MD5Loader.removeComments(input)
+      res should equal(
+        """
+        line "//not a comment" 
+        line 2 
+        line 3
+        """)
+
+    }
+
     "parse a minimal file" in {
       val input = """
         MD5Version 10

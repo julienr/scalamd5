@@ -2,14 +2,16 @@ package md5viewer
 import utils._
 import scala.util.parsing.combinator._
 import scala.util.matching.Regex
-import java.io._
+import scala.util.parsing.combinator.lexical._
+import scala.io.Source
 import collection.immutable.HashMap
+import scala.util.parsing.input.CharArrayReader.EofCh
 
 object MD5Loader {
   class LoadingError(cause: String) extends RuntimeException(cause.toString)
 
   def removeComments (text: String) : String = {
-    val regexp = """(?m)//.*$""".r
+    val regexp = """(?m)//[^"\r\n]*$""".r
     return regexp.replaceAllIn(text, "")
   }
 
@@ -21,15 +23,8 @@ object MD5Loader {
     loaded
   }
 
-  //Will load the first .md5mesh file from the given directory
-  def loadFromDirectory (dir: String) : MD5Model = {
-    val meshFiles = new File(dir).listFiles(new FilenameFilter() {
-      def accept (dir: File, name: String) = name.endsWith(".md5mesh")
-    })
-    if (meshFiles.length == 0)
-      throw new LoadingError("No .md5mesh found in [" + dir+"]")
-
-    val lines = io.Source.fromFile(meshFiles(0)).mkString
+  def loadFromDirectory (file: String) : MD5Model = {
+    val lines = io.Source.fromFile(file).mkString
     val p = new MD5ModelParser
     val model = p.parseAll(p.model, MD5Loader.removeComments(lines)) match {
       case p.Success(m,_) => m
@@ -49,6 +44,16 @@ object MD5Loader {
   }
 
   class MD5GenericParser extends JavaTokenParsers {
+//    override val whiteSpace = """\s""".r | ('/' ~ '/' ~ """[^\\n]""".r) //rep(chrExcept(EofCh, '\n')))
+    override val whiteSpace = """(\s+)|(//[^\n]*)""".r
+    override protected def handleWhiteSpace(source: java.lang.CharSequence, offset: Int): Int = {
+
+      (whiteSpace findPrefixMatchOf (source.subSequence(offset, source.length))) match {
+        case Some(matched) => offset + matched.end
+        case None => offset
+      }
+    }
+
     def version = "MD5Version" ~> natNumber
 
     def commandline = "commandline" ~> quotedString
@@ -61,10 +66,13 @@ object MD5Loader {
     def intNumber = wholeNumber ^^ { _.toInt }
 
     def quotedString = stringLiteral ^^ { str => 
-      if (!(str.charAt(0) == '"' && str.charAt(str.length-1) == '"')) {
-        throw new LoadingError("Expected quoted string : " + str)
+     //def quotedString: Parser[String] = ("\""+"""([^"])*"""+"\"").r ^^ { str => 
+      val tr = str.trim()
+      if (!(tr.charAt(0) == '"' && tr.charAt(str.length-1) == '"')) {
+        throw new LoadingError("Expected quoted string : " + tr)
       }
-      str.substring(1, str.length-1)
+      Console.println(tr)
+      tr.substring(1, tr.length-1)
     }
 
     def vector3 = "(" ~> floatNumber ~ floatNumber ~ floatNumber <~ ")" ^^ {
