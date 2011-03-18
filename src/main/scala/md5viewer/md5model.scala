@@ -25,7 +25,8 @@ protected class Vert(val texCoordU : Float, val texCoordV : Float, val firstWeig
 
 protected class Tri(val indices: Array[Int]) {
   var normal = Vector3(0,0,0)
-  var tangent = Vector3(0,0,0)
+  var uTangent = Vector3(0,0,0)
+  var vTangent = Vector3(0,0,0)
 
   def calculateNormalTangent (verts: Array[Vector3], texCoords: Array[Float]) {
     val v0 = verts(indices(0))
@@ -43,14 +44,18 @@ protected class Tri(val indices: Array[Int]) {
     //tangent (actually, this is U tangent, we don't compute V tangent because it is normal%tangent)
     val deltaU0 = texU(0) - texU(1)
     val deltaU1 = texU(2) - texU(1)
-    tangent = side0*deltaU1 - side1*deltaU0
-    tangent.normalize()
+    uTangent = side0*deltaU1 - side1*deltaU0
+    uTangent.normalize()
+
+    vTangent = normal%uTangent
+    vTangent.normalize()
   }
 }
 
 protected class Weight(val jointIndex: Int, val bias: Float, val w: Vector3) {
   var normal = Vector3(0,0,0)
-  var tangent = Vector3(0,0,0)
+  var uTangent = Vector3(0,0,0)
+  var vTangent = Vector3(0,0,0)
 }
 
 
@@ -61,7 +66,8 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
 
   val vertBuffer = BufferUtils.createFloatBuffer(verts.length*3)
   val normalBuffer = BufferUtils.createFloatBuffer(verts.length*3)
-  val tangentBuffer = BufferUtils.createFloatBuffer(verts.length*3)
+  val vTangentBuffer = BufferUtils.createFloatBuffer(verts.length*3)
+  val uTangentBuffer = BufferUtils.createFloatBuffer(verts.length*3)
   val indicesBuffer = createIndicesBuffer()
   val texCoordsBuffer = createTexCoordsBuffer()
 
@@ -124,23 +130,27 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
     //Also sum per-vertex normals and tangents. For a given vertex,
     //its normal is the average of the normals of all triangle the vertex belongs to
     val vertNormals = new Array[Vector3](verts.length)
-    val vertTangents = new Array[Vector3](verts.length)
+    val vertUTangents = new Array[Vector3](verts.length)
+    val vertVTangents = new Array[Vector3](verts.length)
     for (i <- 0 until verts.length) {
       vertNormals(i) = Vector3(0,0,0)
-      vertTangents(i) = Vector3(0,0,0)
+      vertUTangents(i) = Vector3(0,0,0)
+      vertVTangents(i) = Vector3(0,0,0)
     }
     //sum per-vertex normal, tangent
     for (tri <- tris) {
       tri.calculateNormalTangent(vertPos, texCoords)
       for (i <- 0 until 3) {
         vertNormals(tri.indices(i)) += tri.normal
-        vertTangents(tri.indices(i)) += tri.tangent
+        vertUTangents(tri.indices(i)) += tri.uTangent
+        vertVTangents(tri.indices(i)) += tri.vTangent
       }
     }
     //normalize per-vertex normal, tangent
     for (i <- 0 until verts.length) {
       vertNormals(i).normalize()
-      vertTangents(i).normalize()
+      vertUTangents(i).normalize()
+      vertVTangents(i).normalize()
     }
 
     //Since, when animating, the vertices changes, we would have to recalculate these normals after
@@ -155,13 +165,15 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
         val joint = joints(weight.jointIndex)
         val invJointRot = joint.rotation.getInverse
         weight.normal += invJointRot.rotate(vertNormals(i))
-        weight.tangent += invJointRot.rotate(vertTangents(i))
+        weight.uTangent += invJointRot.rotate(vertUTangents(i))
+        weight.vTangent += invJointRot.rotate(vertVTangents(i))
       }
     }
 
     for (w <- weights) {
       w.normal.normalize()
-      w.tangent.normalize()
+      w.uTangent.normalize()
+      w.vTangent.normalize()
     }
   }
 
@@ -173,12 +185,14 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
     }
     vertBuffer.rewind()
     normalBuffer.rewind()
-    tangentBuffer.rewind()
+    uTangentBuffer.rewind()
+    vTangentBuffer.rewind()
 
     for (i <- 0 until verts.length) {  
       var position = Vector3(0,0,0)
       var normal = Vector3(0,0,0)
-      var tangent = Vector3(0,0,0)
+      var uTangent = Vector3(0,0,0)
+      var vTangent = Vector3(0,0,0)
 
       val baseIdx = verts(i).firstWeight
       for (j <- 0 until verts(i).numWeights) { //for each weight this vert depends upon
@@ -188,7 +202,8 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
         val pos = (wpos + joint.position)*weight.bias
         position += pos
         normal += joint.rotation.rotate(weight.normal)
-        tangent += joint.rotation.rotate(weight.tangent)
+        uTangent += joint.rotation.rotate(weight.uTangent)
+        vTangent += joint.rotation.rotate(weight.vTangent)
       }
 
       addToBuff(vertBuffer, position)
@@ -196,13 +211,16 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
       normal.normalize()
       addToBuff(normalBuffer, normal)
 
-      tangent.normalize()
-      addToBuff(tangentBuffer, tangent)
+      uTangent.normalize()
+      addToBuff(uTangentBuffer, uTangent)
 
+      vTangent.normalize()
+      addToBuff(vTangentBuffer, vTangent)
     }
     vertBuffer.rewind()
     normalBuffer.rewind()
-    tangentBuffer.rewind()
+    uTangentBuffer.rewind()
+    vTangentBuffer.rewind()
   }
 
 
@@ -230,6 +248,8 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
     //The shader will take care of using the first tex coord array for all of them
     glClientActiveTexture(GL_TEXTURE0)
     glTexCoordPointer(2, 0, texCoordsBuffer)
+    normalBuffer.rewind()
+    glNormalPointer(0, normalBuffer)
     glDrawElements(GL_TRIANGLES, indicesBuffer)
   }
 
@@ -241,7 +261,7 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
 
     vertBuffer.rewind()
     normalBuffer.rewind()
-    tangentBuffer.rewind()
+    uTangentBuffer.rewind()
     
     def drawLine (start: (FloatBuffer, Int), dir: (FloatBuffer, Int)) {
       def v (b: FloatBuffer, i: Int) = Vector3(b.get(i), b.get(i+1), b.get(i+2))
@@ -257,7 +277,9 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
       glColor4f(1,0,0,1)
       drawLine((vertBuffer,i), (normalBuffer,i))
       glColor4f(0,1,0,1)
-      drawLine((vertBuffer,i), (tangentBuffer,i))
+      drawLine((vertBuffer,i), (uTangentBuffer,i))
+      glColor4f(0,0,1,1)
+      drawLine((vertBuffer,i), (vTangentBuffer,i))
     }
     glEnd()
   }
@@ -300,11 +322,13 @@ class MD5Model(val version: Int, val commandLine: String, val joints: List[Joint
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
     glColor4f(1,1,1,1)
     glEnableClientState(GL_VERTEX_ARRAY)
+    glEnableClientState(GL_NORMAL_ARRAY)
     glEnableClientState(GL_TEXTURE_COORD_ARRAY)
     for (m <- meshes) {
       m.draw(glProgram)
     }
     glDisableClientState(GL_VERTEX_ARRAY)
+    glDisableClientState(GL_NORMAL_ARRAY)
     glDisableClientState(GL_TEXTURE_COORD_ARRAY)
     //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
     glPopMatrix()
