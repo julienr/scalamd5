@@ -1,4 +1,5 @@
 package engine
+import utils._
 import org.lwjgl.opengl.GL20._
 
 abstract class Shader (val source: String, glType: Int) {
@@ -33,6 +34,8 @@ class GLSLProgram (vShader: VertexShader, fShader: FragmentShader) {
 
   def bind () : Unit = glUseProgram(id)
   def unbind (): Unit = glUseProgram(0)
+
+  def setUniform (name: String, v: Vector3) = glUniform3f(getUniformLocation(name), v.x, v.y, v.z)
 
   def getUniformLocation (name: String) : Int = glGetUniformLocation(id, name)
 

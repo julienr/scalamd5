@@ -42,7 +42,7 @@ class Quaternion(ar: Float, ax: Float, ay: Float, az: Float) {
   def * (f: Float) : Quaternion = new Quaternion(r*f, x*f, y*f, z*f)
   def / (f: Float) : Quaternion = new Quaternion(r/f, x/f, y/f, z/f)
 
-  def / (q: Quaternion) : Quaternion = this.*(q.inverse);
+//  def / (q: Quaternion) : Quaternion = this.*(q.inverse);
 
   def += (q: Quaternion) : Quaternion = {
     r += q.r
@@ -78,9 +78,9 @@ class Quaternion(ar: Float, ax: Float, ay: Float, az: Float) {
 
   def /= (f: Float) : Quaternion = this*=1/f
 
-  def /= (q: Quaternion) : Quaternion = this*=q.inverse
+//  def /= (q: Quaternion) : Quaternion = this*=q.getInverse
 
-  def inverse : Quaternion = getConjugate/magnitude
+  def getInverse : Quaternion = getConjugate/magnitude
   def getConjugate : Quaternion = new Quaternion(r, -x, -y, -z)
   
   def conjugate = {

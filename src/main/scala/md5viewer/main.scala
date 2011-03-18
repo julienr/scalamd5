@@ -2,6 +2,8 @@ package md5viewer
 
 import org.lwjgl.input.Keyboard
 import org.lwjgl.opengl.GL11._
+import org.lwjgl.opengl.GL13._
+
 import utils._
 import engine._
 
@@ -15,6 +17,39 @@ object Main extends FrameListener {
   var anim : MD5Anim = null
 
   var glProgram : GLSLProgram = null
+
+  //point light position
+  class PointLight {
+    val rotCenter = Vector3(0,90,0)
+    var rotAngle = 0.0
+    val rotSpeed = 0.3
+    val rotRadius = 50
+
+    var position = rotCenter
+
+    def updatePos (elapsedS: Float) {
+      position = rotCenter+Vector3(math.cos(rotAngle).toFloat, 0, math.sin(rotAngle).toFloat)*rotRadius
+      rotAngle += rotSpeed*elapsedS
+      if (rotAngle > 2*MathUtils.PI)
+        rotAngle -= 2*MathUtils.PI
+    }
+
+    def draw () {
+      glActiveTexture(GL_TEXTURE0)
+      glDisable(GL_TEXTURE_2D)
+      glActiveTexture(GL_TEXTURE1)
+      glDisable(GL_TEXTURE_2D)
+
+      //light
+      glPointSize(5.0f)
+      glColor4f(1,0,0,0)
+      glBegin(GL_POINTS)
+      glVertex3f(position.x, position.y, position.z)
+      glEnd()
+    }
+  }
+
+  val light = new PointLight()
   
   def main(args: Array[String]) {
     if (args.length < 1) {
@@ -62,8 +97,13 @@ object Main extends FrameListener {
     //Renderer.drawPyramid()
 
     glProgram.bind()
+    glProgram.setUniform("lightPos", light.position)
     model.draw(glProgram)
     glProgram.unbind()
+
+    model.drawNormals()
+
+    light.draw()
   }
 
   @Override
@@ -74,6 +114,9 @@ object Main extends FrameListener {
     }
     FPSCounter.countFrame(elapsedTime)
     //System.out.println("Move : " + elapsedTime);
+
+    light.updatePos(elapsedTime)
+
   }
 
   def onMouseMove (oldPos: Vector2, newPos: Vector2) {

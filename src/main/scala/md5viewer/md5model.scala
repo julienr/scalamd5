@@ -24,9 +24,33 @@ protected class Vert(val texCoordU : Float, val texCoordV : Float, val firstWeig
 }
 
 protected class Tri(val indices: Array[Int]) {
+  var normal = Vector3(0,0,0)
+  var tangent = Vector3(0,0,0)
+
+  def calculateNormalTangent (verts: Array[Vector3], texCoords: Array[Float]) {
+    val v0 = verts(indices(0))
+    val v1 = verts(indices(2))
+    val v2 = verts(indices(1))
+
+    val side0 = v0-v1
+    val side1 = v2-v1
+
+    //normal
+    normal = side1%side0
+    normal.normalize()
+    
+    def texU (idx: Int) = texCoords(2*indices(idx))
+    //tangent (actually, this is U tangent, we don't compute V tangent because it is normal%tangent)
+    val deltaU0 = texU(0) - texU(1)
+    val deltaU1 = texU(2) - texU(1)
+    tangent = side0*deltaU1 - side1*deltaU0
+    tangent.normalize()
+  }
 }
 
 protected class Weight(val jointIndex: Int, val bias: Float, val w: Vector3) {
+  var normal = Vector3(0,0,0)
+  var tangent = Vector3(0,0,0)
 }
 
 
@@ -36,6 +60,8 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
   val localTex = loadTex(shader+"_local.tga")
 
   val vertBuffer = BufferUtils.createFloatBuffer(verts.length*3)
+  val normalBuffer = BufferUtils.createFloatBuffer(verts.length*3)
+  val tangentBuffer = BufferUtils.createFloatBuffer(verts.length*3)
   val indicesBuffer = createIndicesBuffer()
   val texCoordsBuffer = createTexCoordsBuffer()
 
@@ -66,9 +92,14 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
     texCoordsBuff
   }
 
-  def skin (joints: List[Joint]) {
+  //Calculate initial skin. Called once just after model loading.
+  //Mostly used to calculate by-weight normals that can be reused later
+  def initialSkin (joints: List[Joint]) {
+    val vertPos = new Array[Vector3](verts.length)
+    val texCoords = new Array[Float](verts.length*2)
     vertBuffer.rewind()
 
+    //Calculate initial vertex position
     for (i <- 0 until verts.length) {  
       var vertice = Vector3(0,0,0)
 
@@ -83,9 +114,98 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
       vertBuffer.put(vertice.x)
       vertBuffer.put(vertice.y)
       vertBuffer.put(vertice.z)
+      vertPos(i) = vertice
+      texCoords(2*i) = verts(i).texCoordU
+      texCoords(2*i+1) = verts(i).texCoordV
     }
     vertBuffer.rewind()
+
+    //Calculate per-triangle normals and tangents
+    //Also sum per-vertex normals and tangents. For a given vertex,
+    //its normal is the average of the normals of all triangle the vertex belongs to
+    val vertNormals = new Array[Vector3](verts.length)
+    val vertTangents = new Array[Vector3](verts.length)
+    for (i <- 0 until verts.length) {
+      vertNormals(i) = Vector3(0,0,0)
+      vertTangents(i) = Vector3(0,0,0)
+    }
+    //sum per-vertex normal, tangent
+    for (tri <- tris) {
+      tri.calculateNormalTangent(vertPos, texCoords)
+      for (i <- 0 until 3) {
+        vertNormals(tri.indices(i)) += tri.normal
+        vertTangents(tri.indices(i)) += tri.tangent
+      }
+    }
+    //normalize per-vertex normal, tangent
+    for (i <- 0 until verts.length) {
+      vertNormals(i).normalize()
+      vertTangents(i).normalize()
+    }
+
+    //Since, when animating, the vertices changes, we would have to recalculate these normals after
+    //each animation step. To avoid that, we will store them in the weights. First, we need to transform
+    //them to joint space so they are animation-invariant. 
+    //As before, the normal of a weight is simply the average of the normals of all vertices that are attached
+    //to it
+    for (i <- 0 until verts.length) {
+      val baseIdx = verts(i).firstWeight
+      for (j <- 0 until verts(i).numWeights) { 
+        val weight = weights(baseIdx+j)
+        val joint = joints(weight.jointIndex)
+        val invJointRot = joint.rotation.getInverse
+        weight.normal += invJointRot.rotate(vertNormals(i))
+        weight.tangent += invJointRot.rotate(vertTangents(i))
+      }
+    }
+
+    for (w <- weights) {
+      w.normal.normalize()
+      w.tangent.normalize()
+    }
   }
+
+  def skin (joints: List[Joint]) {
+    def addToBuff (buff: FloatBuffer, v: Vector3) {
+      buff.put(v.x)
+      buff.put(v.y)
+      buff.put(v.z)
+    }
+    vertBuffer.rewind()
+    normalBuffer.rewind()
+    tangentBuffer.rewind()
+
+    for (i <- 0 until verts.length) {  
+      var position = Vector3(0,0,0)
+      var normal = Vector3(0,0,0)
+      var tangent = Vector3(0,0,0)
+
+      val baseIdx = verts(i).firstWeight
+      for (j <- 0 until verts(i).numWeights) { //for each weight this vert depends upon
+        val weight = weights(baseIdx+j)
+        val joint = joints(weight.jointIndex)
+        val wpos = joint.rotation.rotate(weight.w)
+        val pos = (wpos + joint.position)*weight.bias
+        position += pos
+        normal += joint.rotation.rotate(weight.normal)
+        tangent += joint.rotation.rotate(weight.tangent)
+      }
+
+      addToBuff(vertBuffer, position)
+      
+      normal.normalize()
+      addToBuff(normalBuffer, normal)
+
+      tangent.normalize()
+      addToBuff(tangentBuffer, tangent)
+
+    }
+    vertBuffer.rewind()
+    normalBuffer.rewind()
+    tangentBuffer.rewind()
+  }
+
+
 
   def bindTex (unit: Int, texture: Texture) {
     glActiveTexture(unit)
@@ -113,6 +233,35 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
     glDrawElements(GL_TRIANGLES, indicesBuffer)
   }
 
+  def drawNormals () {
+    glActiveTexture(GL_TEXTURE0)
+    glDisable(GL_TEXTURE_2D)
+    glActiveTexture(GL_TEXTURE1)
+    glDisable(GL_TEXTURE_2D)
+
+    vertBuffer.rewind()
+    normalBuffer.rewind()
+    tangentBuffer.rewind()
+    
+    def drawLine (start: (FloatBuffer, Int), dir: (FloatBuffer, Int)) {
+      def v (b: FloatBuffer, i: Int) = Vector3(b.get(i), b.get(i+1), b.get(i+2))
+      def glv (v: Vector3) { glVertex3f(v.x, v.y, v.z) }
+      val startV = v(start._1, start._2)
+      glv(startV)
+      val dirV = v(dir._1, dir._2)
+      glv(startV+dirV)
+    }
+
+    glBegin(GL_LINES)
+    for (i <- Range(0,verts.length*3,3)) {
+      glColor4f(1,0,0,1)
+      drawLine((vertBuffer,i), (normalBuffer,i))
+      glColor4f(0,1,0,1)
+      drawLine((vertBuffer,i), (tangentBuffer,i))
+    }
+    glEnd()
+  }
+
 }
 
 //Model class
@@ -120,8 +269,11 @@ class MD5Model(val version: Int, val commandLine: String, val joints: List[Joint
   val rotation = Quaternion(-MathUtils.PI_2, Vector3(1,0,0))*Quaternion(-MathUtils.PI_2, Vector3(0,0,1))
   val baseJoints = buildJointsHierarchy()
 
-  for (m <- meshes)
+  //We could call initialSkin directly in Mesh' constructor, but this would then happens during parsing... 
+  for (m <- meshes) {
+    m.initialSkin(joints)
     m.skin(joints)
+  }
 
   private def buildJointsHierarchy () : List[Joint] = {
     val baseJoints = new MutableList[Joint]
@@ -154,92 +306,20 @@ class MD5Model(val version: Int, val commandLine: String, val joints: List[Joint
     }
     glDisableClientState(GL_VERTEX_ARRAY)
     glDisableClientState(GL_TEXTURE_COORD_ARRAY)
-    glDisable(GL_TEXTURE_2D)
     //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
     glPopMatrix()
+  }
 
+  def drawNormals () {
+    glPushMatrix()
+    Renderer.applyRotation(rotation)
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY)
+    for (m <- meshes) {
+      m.drawNormals()
+    }
+    glPopMatrix()
   }
 }
 
-//Anim
 
-protected class JointInfo (val parent: Int, val flags: Int, val frameIndex: Int) {
-}
-
-protected class JointBaseFrame (val position: Vector3, val rotation: Quaternion) {
-}
-
-protected class BaseFrame (val joints: List[JointBaseFrame]) {
-}
-
-protected class Frame (val values: Array[Float]) {
-}
-
-class MD5Anim (val version: Int, val commandLine: String, val jointInfos: List[JointInfo], val baseframe : BaseFrame, val frames: List[Frame], frameRate: Int) {
-  var currentTime = 0.0f
-  var previousTime = 0.0f
-
-  var currentFrame = 0
-
-  def animate (model: MD5Model, elapsedTime: Float) {
-    currentTime += elapsedTime
-    if ((currentTime-previousTime) > 1/frameRate.toFloat) {
-      previousTime = currentTime
-      currentFrame += 1
-      if (currentFrame >= frames.length) {
-        currentFrame = 0
-      }
-      for (joint <- model.baseJoints) {
-        animateJoint(joint, currentFrame, Quaternion(0,Vector3(0,1,0)), Vector3(0,0,0))
-      }
-      model.skin()
-    }
-  }
-
-  def animateJoint (joint: Joint, frame: Int, parentRotation: Quaternion, parentPosition: Vector3) {
-    val animatedPosition = baseframe.joints(joint.number).position
-    val animatedRotation = baseframe.joints(joint.number).rotation
-
-    val flags = jointInfos(joint.number).flags
-    val baseIdx = jointInfos(joint.number).frameIndex
-    var n = 0
-    if ((flags & 1) == 1) { //Tx
-      animatedPosition.x = frames(frame).values(baseIdx+n)
-      n += 1
-    }
-    if ((flags & 2) == 2) { //Ty
-      animatedPosition.y = frames(frame).values(baseIdx+n)
-      n += 1
-    }
-    if ((flags & 4) == 4) { //Tz
-      animatedPosition.z = frames(frame).values(baseIdx+n)
-      n += 1
-    }
-    if ((flags & 8) == 8) { //Qx
-      animatedRotation.x = frames(frame).values(baseIdx+n)
-      n += 1
-    }
-    if ((flags & 16) == 16) { //Qy
-      animatedRotation.y = frames(frame).values(baseIdx+n)
-      n += 1
-    }
-    if ((flags & 32) == 32) { //Qz
-      animatedRotation.z = frames(frame).values(baseIdx+n)
-      n += 1
-    }
-    animatedRotation.computeR()
-
-    if (joint.parentJoint == null) { //base joint
-      joint.position = animatedPosition
-      joint.rotation = animatedRotation
-    } else { //has a parent
-      joint.position = parentRotation.rotate(animatedPosition) + parentPosition
-      joint.rotation = parentRotation*animatedRotation
-    }
-
-    for (child <- joint.children) {
-      animateJoint(child, frame, joint.rotation, joint.position)
-    }
-  }
-}
 // vim: set ts=2 sw=2 et:
