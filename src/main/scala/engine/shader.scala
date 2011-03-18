@@ -1,6 +1,7 @@
 package engine
 import utils._
 import org.lwjgl.opengl.GL20._
+import java.nio.FloatBuffer
 
 abstract class Shader (val source: String, glType: Int) {
   val id = glCreateShader(glType)
@@ -35,9 +36,29 @@ class GLSLProgram (vShader: VertexShader, fShader: FragmentShader) {
   def bind () : Unit = glUseProgram(id)
   def unbind (): Unit = glUseProgram(0)
 
+
   def setUniform (name: String, v: Vector3) = glUniform3f(getUniformLocation(name), v.x, v.y, v.z)
 
-  def getUniformLocation (name: String) : Int = glGetUniformLocation(id, name)
+  //TODO: Might maintain a name->location cache to avoid lookups
+  def getUniformLocation (name: String) : Int =  {
+    val loc = glGetUniformLocation(id, name)
+    if (loc == -1) {
+      throw new Exception("Uniform location not found for '"+name+"'")
+    }
+    loc
+  }
+
+  def getAttribLocation (name: String) : Int = {
+    val loc = glGetAttribLocation(id, name)
+    if (loc == -1) {
+      throw new Exception("Attribute location not found for '"+name+"'")
+    }
+    loc
+  }
+
+  def setAttribPointer (name: String, size: Int, normalized: Boolean, buff: FloatBuffer) {
+    glVertexAttribPointer(getAttribLocation(name), size, normalized, 0, buff)
+  }
 
   //Associate the given sampler to the given texture unit
   def setSamplerUnit (samplerName: String, unit: Int) = glUniform1i(getUniformLocation(samplerName), unit)

@@ -232,6 +232,9 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
     glTexCoordPointer(2, 0, texCoordsBuffer)
     normalBuffer.rewind()
     glNormalPointer(0, normalBuffer)
+
+    tangentBuffer.rewind()
+    glProgram.setAttribPointer("tangent", 3, true, tangentBuffer) 
     glDrawElements(GL_TRIANGLES, indicesBuffer)
   }
 
