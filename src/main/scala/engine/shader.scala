@@ -2,6 +2,7 @@ package engine
 import utils._
 import org.lwjgl.opengl.GL20._
 import java.nio.FloatBuffer
+import collection.mutable.HashMap
 
 abstract class Shader (val source: String, glType: Int) {
   val id = glCreateShader(glType)
@@ -32,32 +33,47 @@ class GLSLProgram (vShader: VertexShader, fShader: FragmentShader) {
   if (!err.equals(""))
     Console.println("Program compiled with error : " + err)
 
+  private val uniformLocs = new HashMap[String, Int]
+  private val attribLocs = new HashMap[String, Int]
+
 
   def bind () : Unit = glUseProgram(id)
   def unbind (): Unit = glUseProgram(0)
 
+  //TODO: Should maintain a name->location cache to avoid lookups
+  def getUniformLocation (name: String) : Int = {
+    uniformLocs.getOrElseUpdate(name, {
+      val loc = glGetUniformLocation(id, name)
+      if (loc == -1) {
+        Console.println("Error : uniform location not found for '"+name+"'")
+      }
+      loc
+    })
 
-  def setUniform (name: String, v: Vector3) = glUniform3f(getUniformLocation(name), v.x, v.y, v.z)
-
-  //TODO: Might maintain a name->location cache to avoid lookups
-  def getUniformLocation (name: String) : Int =  {
-    val loc = glGetUniformLocation(id, name)
-    if (loc == -1) {
-      throw new Exception("Uniform location not found for '"+name+"'")
-    }
-    loc
   }
 
   def getAttribLocation (name: String) : Int = {
-    val loc = glGetAttribLocation(id, name)
-    if (loc == -1) {
-      throw new Exception("Attribute location not found for '"+name+"'")
-    }
-    loc
+    attribLocs.getOrElseUpdate(name, {
+      val loc = glGetAttribLocation(id, name)
+      if (loc == -1) {
+        Console.println("Error : attribute location not found for '"+name+"'")
+      }
+      loc
+    })
   }
 
-  def setAttribPointer (name: String, size: Int, normalized: Boolean, buff: FloatBuffer) {
-    glVertexAttribPointer(getAttribLocation(name), size, normalized, 0, buff)
+  def setAttribPointer (name: String, size: Int, normalize: Boolean, buff: FloatBuffer) {
+    val loc = getAttribLocation(name)
+    if (loc != -1) {
+      glEnableVertexAttribArray(loc)
+      glVertexAttribPointer(loc, size, normalize, 0, buff)
+    }
+  }
+
+  def setUniform (name: String, v: Vector3) {
+    val loc = getUniformLocation(name)
+    if (loc != -1)
+      glUniform3f(loc, v.x, v.y, v.z)
   }
 
   //Associate the given sampler to the given texture unit

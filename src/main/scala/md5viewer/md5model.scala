@@ -56,8 +56,8 @@ protected class Weight(val jointIndex: Int, val bias: Float, val w: Vector3) {
 
 protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tri], val weights: List[Weight]) {
   val shader = "models/".r.replaceAllIn(rawShader, "data/textures/")
-  val colorTex = loadTex(shader+"_d.tga")
-  val localTex = loadTex(shader+"_local.tga")
+  val colorTex = loadTex(shader+"_d.tga", GL_LINEAR)
+  val localTex = loadTex(shader+"_local.tga", GL_NEAREST)
 
   val vertBuffer = BufferUtils.createFloatBuffer(verts.length*3)
   val normalBuffer = BufferUtils.createFloatBuffer(verts.length*3)
@@ -65,10 +65,10 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
   val indicesBuffer = createIndicesBuffer()
   val texCoordsBuffer = createTexCoordsBuffer()
 
-  def loadTex (file: String) = {
+  def loadTex (file: String, filter: Int) = {
     try {
       Console.println("loading : " + file)
-      TextureLoader.getTexture("TGA", new FileInputStream(file))
+      TextureLoader.getTexture("TGA", new FileInputStream(file), filter)
     } catch {
       case ioe: IOException => Console.println(ioe); null
     }
@@ -234,7 +234,8 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
     glNormalPointer(0, normalBuffer)
 
     tangentBuffer.rewind()
-    glProgram.setAttribPointer("tangent", 3, true, tangentBuffer) 
+    glProgram.setAttribPointer("tangent", 3, false, tangentBuffer) 
+    Renderer.checkGLError("tangent attrib pointer")
     glDrawElements(GL_TRIANGLES, indicesBuffer)
   }
 

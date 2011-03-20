@@ -3,6 +3,8 @@ package md5viewer
 import org.lwjgl.input.Keyboard
 import org.lwjgl.opengl.GL11._
 import org.lwjgl.opengl.GL13._
+import org.lwjgl._
+
 
 import utils._
 import engine._
@@ -97,7 +99,14 @@ object Main extends FrameListener {
     //Renderer.drawPyramid()
 
     glProgram.bind()
-    glProgram.setUniform("lightPos", light.position)
+    glProgram.setUniform("lightPos", camera.getRotation.getConjugate.rotate(light.position-camera.getPosition))
+    val lp = BufferUtils.createFloatBuffer(4)
+    lp.put(light.position.x)
+    lp.put(light.position.y)
+    lp.put(light.position.z)
+    lp.put(1)
+    lp.rewind()
+    glLight(GL_LIGHT0, GL_POSITION, lp)
     model.draw(glProgram)
     glProgram.unbind()
 
