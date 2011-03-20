@@ -5,7 +5,7 @@ import java.io.File
 // simple build tool does not find the so libraries automatically, 
 // so we need to import them manually 
 
-class LWJGLProject(info: ProjectInfo) extends DefaultProject(info) with de.tuxed.codefellow.plugin.CodeFellowPlugin {
+class LWJGLProject(info: ProjectInfo) extends DefaultProject(info) {
   val scalatest = "org.scalatest"%"scalatest"%"1.3"
 
   // to specify new runJVMOptions we need to fork the execution    
