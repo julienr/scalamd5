@@ -38,9 +38,14 @@ class GLSLProgram (vShader: VertexShader, fShader: FragmentShader) {
 
 
   def bind () : Unit = glUseProgram(id)
-  def unbind (): Unit = glUseProgram(0)
+  def unbind () {
+    glUseProgram(0)
+    for ((name, loc) <- attribLocs) {
+      //TODO: not sure if this is really needed
+      glDisableVertexAttribArray(loc)
+    }
+  }
 
-  //TODO: Should maintain a name->location cache to avoid lookups
   def getUniformLocation (name: String) : Int = {
     uniformLocs.getOrElseUpdate(name, {
       val loc = glGetUniformLocation(id, name)

@@ -57,7 +57,8 @@ protected class Weight(val jointIndex: Int, val bias: Float, val w: Vector3) {
 protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tri], val weights: List[Weight]) {
   val shader = "models/".r.replaceAllIn(rawShader, "data/textures/")
   val colorTex = loadTex(shader+"_d.tga", GL_LINEAR)
-  val localTex = loadTex(shader+"_local.tga", GL_NEAREST)
+  val localTex = loadTex(shader+"_local.tga", GL_LINEAR)
+  val specularTex = loadTex(shader+"_s.tga", GL_LINEAR)
 
   val vertBuffer = BufferUtils.createFloatBuffer(verts.length*3)
   val normalBuffer = BufferUtils.createFloatBuffer(verts.length*3)
@@ -223,6 +224,9 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
     glProgram.setSamplerUnit("colorTex", 0)
     bindTex(GL_TEXTURE1, localTex)
     glProgram.setSamplerUnit("localTex", 1)
+    bindTex(GL_TEXTURE2, specularTex)
+    glProgram.setSamplerUnit("specularTex", 2)
+
     vertBuffer.rewind()
     glVertexPointer(3, 0, vertBuffer)
     texCoordsBuffer.rewind()
@@ -235,7 +239,7 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
 
     tangentBuffer.rewind()
     glProgram.setAttribPointer("tangent", 3, false, tangentBuffer) 
-    Renderer.checkGLError("tangent attrib pointer")
+    //Renderer.checkGLError("tangent attrib pointer")
     glDrawElements(GL_TRIANGLES, indicesBuffer)
   }
 

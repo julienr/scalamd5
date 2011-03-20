@@ -99,18 +99,12 @@ object Main extends FrameListener {
     //Renderer.drawPyramid()
 
     glProgram.bind()
+    //Calculate view-space light pos
     glProgram.setUniform("lightPos", camera.getRotation.getConjugate.rotate(light.position-camera.getPosition))
-    val lp = BufferUtils.createFloatBuffer(4)
-    lp.put(light.position.x)
-    lp.put(light.position.y)
-    lp.put(light.position.z)
-    lp.put(1)
-    lp.rewind()
-    glLight(GL_LIGHT0, GL_POSITION, lp)
     model.draw(glProgram)
     glProgram.unbind()
 
-    model.drawNormals()
+    //model.drawNormals()
 
     light.draw()
   }
