@@ -60,10 +60,10 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
   val localTex = loadTex(shader+"_local.tga", GL_LINEAR)
   val specularTex = loadTex(shader+"_s.tga", GL_LINEAR)
 
-  val mesh = new engine.Mesh(verts.length, tris.length)
-  mesh.addTex(GL_TEXTURE0, colorTex, "colorTex", 0)
-  mesh.addTex(GL_TEXTURE1, localTex, "localTex", 1)
-  mesh.addTex(GL_TEXTURE2, specularTex, "specularTex", 2)
+  val glmesh = new GLMesh(verts.length, tris.length)
+  glmesh.addTex(GL_TEXTURE0, colorTex, "colorTex", 0)
+  glmesh.addTex(GL_TEXTURE1, localTex, "localTex", 1)
+  glmesh.addTex(GL_TEXTURE2, specularTex, "specularTex", 2)
 
   fillIndicesBuffer()
   fillTexCoordsBuffer()
@@ -78,7 +78,7 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
   }
 
   def fillIndicesBuffer () {
-    val buff = mesh.indicesBuffer
+    val buff = glmesh.indicesBuffer
     buff.rewind()
     for (tri <- tris) {
       buff.put(tri.indices)
@@ -86,7 +86,7 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
   }
 
   def fillTexCoordsBuffer () {
-    val texCoordsBuff = mesh.texCoordsBuffer
+    val texCoordsBuff = glmesh.texCoordsBuffer
     for (vert <- verts) {  
       texCoordsBuff.put(vert.texCoordU)
       texCoordsBuff.put(vert.texCoordV)
@@ -99,7 +99,7 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
     val vertPos = new Array[Vector3](verts.length)
     val texCoords = new Array[Float](verts.length*2)
 
-    val vertBuffer = mesh.vertBuffer
+    val vertBuffer = glmesh.vertBuffer
 
     //Calculate initial vertex position
     for (i <- 0 until verts.length) {  
@@ -173,9 +173,9 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
       buff.put(v.y)
       buff.put(v.z)
     }
-    val vertBuffer = mesh.vertBuffer
-    val normalBuffer = mesh.normalBuffer
-    val tangentBuffer = mesh.getAttribBuffer("tangent")
+    val vertBuffer = glmesh.vertBuffer
+    val normalBuffer = glmesh.normalBuffer
+    val tangentBuffer = glmesh.getAttribBuffer("tangent")
     vertBuffer.rewind()
     normalBuffer.rewind()
     tangentBuffer.rewind()
@@ -209,40 +209,23 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
     normalBuffer.rewind()
     tangentBuffer.rewind()
   }
-
-
-
-  def bindTex (unit: Int, texture: Texture) {
-    glActiveTexture(unit)
-    if (texture != null) {
-      glEnable(GL_TEXTURE_2D)
-      //glBindTexture(GL_TEXTURE_2D, texture.getTextureID())
-      texture.bind()
-    } else {
-      glDisable(GL_TEXTURE_2D)
-    }
-  }
-
-  def draw (glProgram: GLSLProgram) {
-     mesh.draw(glProgram)
-  }
-
-  def drawNormals () {
-     mesh.drawNormals()
-  }
-
 }
 
 //Model class
 class MD5Model(val version: Int, val commandLine: String, val joints: List[Joint], val meshes: List[Mesh]) {
-  val rotation = Quaternion(-MathUtils.PI_2, Vector3(1,0,0))*Quaternion(-MathUtils.PI_2, Vector3(0,0,1))
+  val glentity = new GLEntity 
+  glentity.rotation = Quaternion(-MathUtils.PI_2, Vector3(1,0,0))*Quaternion(-MathUtils.PI_2, Vector3(0,0,1))
+
   val baseJoints = buildJointsHierarchy()
 
   //We could call initialSkin directly in Mesh' constructor, but this would then happens during parsing... 
   for (m <- meshes) {
     m.initialSkin(joints)
     m.skin(joints)
+    glentity.addMesh(m.glmesh)
   }
+
+
 
   private def buildJointsHierarchy () : List[Joint] = {
     val baseJoints = new MutableList[Joint]
@@ -261,34 +244,6 @@ class MD5Model(val version: Int, val commandLine: String, val joints: List[Joint
     for (m <- meshes) {
       m.skin(joints)
     }
-  }
-
-  def draw (glProgram: GLSLProgram) {
-    glPushMatrix()
-    Renderer.applyRotation(rotation)
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
-    glColor4f(1,1,1,1)
-    glEnableClientState(GL_VERTEX_ARRAY)
-    glEnableClientState(GL_NORMAL_ARRAY)
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY)
-    for (m <- meshes) {
-      m.draw(glProgram)
-    }
-    glDisableClientState(GL_VERTEX_ARRAY)
-    glDisableClientState(GL_NORMAL_ARRAY)
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY)
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
-    glPopMatrix()
-  }
-
-  def drawNormals () {
-    glPushMatrix()
-    Renderer.applyRotation(rotation)
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY)
-    for (m <- meshes) {
-      m.drawNormals()
-    }
-    glPopMatrix()
   }
 }
 

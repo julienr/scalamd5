@@ -101,7 +101,7 @@ object Main extends FrameListener {
     glProgram.bind()
     //Calculate view-space light pos
     glProgram.setUniform("lightPos", camera.getRotation.getConjugate.rotate(light.position-camera.getPosition))
-    model.draw(glProgram)
+    model.glentity.draw(glProgram)
     glProgram.unbind()
 
     //model.drawNormals()

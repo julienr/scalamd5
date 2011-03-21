@@ -12,10 +12,51 @@ import java.io.FileInputStream
 import java.io.IOException
 import collection.mutable.HashSet
 
+//An entity is a collection of meshes that share the same rotation/position transform
+class GLEntity {
+  var position = Vector3(0,0,0)
+  var rotation = Quaternion(0, Vector3(0,1,0))
+
+  private val meshes = new HashSet[GLMesh]
+
+  def addMesh (m: GLMesh) = meshes += m
+
+  def draw (glProgram: GLSLProgram) {
+    glPushMatrix()
+    glTranslatef(position.x, position.y, position.z)
+    Renderer.applyRotation(rotation)
+
+   //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+    glColor4f(1,1,1,1)
+    glEnableClientState(GL_VERTEX_ARRAY)
+    glEnableClientState(GL_NORMAL_ARRAY)
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY)
+    for (m <- meshes) {
+      m.draw(glProgram)
+    }
+    glDisableClientState(GL_VERTEX_ARRAY)
+    glDisableClientState(GL_NORMAL_ARRAY)
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY)
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+
+    glPopMatrix()
+  }
+
+  def drawNormals () {
+    glPushMatrix()
+    Renderer.applyRotation(rotation)
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY)
+    for (m <- meshes) {
+      m.drawNormals()
+    }
+    glPopMatrix()
+  }
+}
+
 //A mesh is simply a collection of buffers that will be draw
 //It originally consist of set of buffers for vertices, normals, tex coords and indices
 //Additionnal attribute buffers can be attached
-class Mesh (numVerts: Int, numTris: Int) {
+class GLMesh (numVerts: Int, numTris: Int) {
   val vertBuffer = BufferUtils.createFloatBuffer(numVerts*3)
   val normalBuffer = BufferUtils.createFloatBuffer(numVerts*3)
   val indicesBuffer = BufferUtils.createIntBuffer(numTris*3)
