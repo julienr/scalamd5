@@ -1,4 +1,4 @@
-//Vertex
+//Point light Vertex
 //See http://www.fabiensanglard.net/bumpMapping/index.php
 attribute vec3 tangent;
 

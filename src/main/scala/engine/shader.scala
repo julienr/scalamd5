@@ -81,6 +81,12 @@ class GLSLProgram (vShader: VertexShader, fShader: FragmentShader) {
       glUniform3f(loc, v.x, v.y, v.z)
   }
 
+  def setUniform (name: String, v: Float) {
+    val loc = getUniformLocation(name)
+    if (loc != -1)
+      glUniform1f(loc, v)
+  }
+
   //Associate the given sampler to the given texture unit
   def setSamplerUnit (samplerName: String, unit: Int) = glUniform1i(getUniformLocation(samplerName), unit)
 }

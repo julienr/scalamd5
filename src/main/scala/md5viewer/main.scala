@@ -24,7 +24,7 @@ object Main extends FrameListener {
   class PointLight {
     val rotCenter = Vector3(0,90,0)
     var rotAngle = 0.0
-    val rotSpeed = 0.3
+    var rotSpeed = 0.3
     val rotRadius = 50
 
     var position = rotCenter
@@ -51,7 +51,43 @@ object Main extends FrameListener {
     }
   }
 
-  val light = new PointLight()
+  class SpotLight {
+    val rotCenter = Vector3(0,110,0)
+    var rotAngle = 0.0
+    var rotSpeed = 0.3
+    val rotRadius = 50
+
+    var position = rotCenter
+    var lookAt = Vector3(0,0,0)
+
+    def updatePos (elapsedS: Float) {
+      position = rotCenter+Vector3(math.cos(rotAngle).toFloat, 0, math.sin(rotAngle).toFloat)*rotRadius
+      rotAngle += rotSpeed*elapsedS
+/*      if (rotAngle > 2*MathUtils.PI)
+        rotAngle -= 2*MathUtils.PI*/
+
+      if (rotAngle > MathUtils.PI)
+        rotSpeed *= -1
+      if (rotAngle < 0)
+        rotSpeed *= -1
+    }
+
+    def draw () {
+      glActiveTexture(GL_TEXTURE0)
+      glDisable(GL_TEXTURE_2D)
+      glActiveTexture(GL_TEXTURE1)
+      glDisable(GL_TEXTURE_2D)
+
+      //light
+      glPointSize(5.0f)
+      glColor4f(1,0,0,0)
+      glBegin(GL_POINTS)
+      glVertex3f(position.x, position.y, position.z)
+      glEnd()
+    }
+  }
+
+  val light = new SpotLight()
   
   def main(args: Array[String]) {
     if (args.length < 1) {
@@ -75,8 +111,8 @@ object Main extends FrameListener {
 
     //Load shaders
     Renderer.checkGLError("Before shaders")
-    val vs = new VertexShader(io.Source.fromFile("data/shaders/vertex.glsl").mkString)
-    val fs = new FragmentShader(io.Source.fromFile("data/shaders/fragment.glsl").mkString)
+    val vs = new VertexShader(io.Source.fromFile("data/shaders/spot_vertex.glsl").mkString)
+    val fs = new FragmentShader(io.Source.fromFile("data/shaders/spot_fragment.glsl").mkString)
     glProgram = new GLSLProgram(vs, fs)
 
     model = MD5Loader.loadModel(args(0))
@@ -96,9 +132,16 @@ object Main extends FrameListener {
     Renderer.drawWorldAxis(1);
     //Renderer.drawPyramid()
 
-    glProgram.bind()
+/*    glProgram.bind()
     //Calculate view-space light pos
+    glProgram.setUniform("lightPos", camera.getRotation.getConjugate.rotate(light.position-camera.getPosition))*/
+    glProgram.bind()
     glProgram.setUniform("lightPos", camera.getRotation.getConjugate.rotate(light.position-camera.getPosition))
+    glProgram.setUniform("eyeSpotDir", camera.getRotation.getConjugate.rotate(light.lookAt-light.position-camera.getPosition))
+    glProgram.setUniform("attVector", Vector3(1.0f, 0, 0));
+    glProgram.setUniform("spotCosCutoff", math.cos(0.3).toFloat)
+    glProgram.setUniform("spotExp", 50)
+
     model.glentity.draw(glProgram)
     glProgram.unbind()
 
@@ -109,7 +152,7 @@ object Main extends FrameListener {
 
   @Override
   def move (elapsedTime: Float) {
-    keyboardController.control(elapsedTime, 20.0f)
+    keyboardController.control(elapsedTime, 40.0f)
     if (anim != null) {
       anim.animate(model, elapsedTime)
     }

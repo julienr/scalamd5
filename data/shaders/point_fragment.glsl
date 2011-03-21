@@ -1,4 +1,4 @@
-//Fragment
+//Point light Fragment
 //See http://www.fabiensanglard.net/bumpMapping/index.php
 
 //localTex is bump
@@ -6,6 +6,7 @@ uniform sampler2D colorTex;
 uniform sampler2D localTex;
 uniform sampler2D specularTex;
 
+//light vec is the vector going from the light to the vertex
 varying vec3 lightVec;
 varying vec3 eyeVec;
 
