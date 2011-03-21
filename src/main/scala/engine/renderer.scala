@@ -63,7 +63,7 @@ object Renderer {
     if (err != 0)
       Console.println("GL Error ("+diagString+") : " + GLU.gluErrorString(err))
   }
- 
+
   def drawPyramid () {
     GL11.glBegin( GL11.GL_TRIANGLES );             
     GL11.glColor3f(   1.0f,  0.0f,  0.0f ); 
@@ -109,22 +109,7 @@ object Renderer {
     GL11.glLoadIdentity
 
     val matrix = cam.getRotation.getConjugate.getMatrix
-    //Console.println("camera rotation : " + matrix)
-/*
-    Console.println("current modelview : ")
-    GL11.glGetFloat(GL11.GL_MODELVIEW_MATRIX, matrix)
-    printMatrix(matrix)
-
-    
-    checkGLError("preRender:beforeMult")*/
     GL11.glMultMatrix(matrix.getFloatBuffer);
-/*    Console.println(cam.position)
-
-    val modelview = java.nio.FloatBuffer.allocate(16)
-    Console.println("final modelview : ")
-    GL11.glGetFloat(GL11.GL_MODELVIEW_MATRIX, modelview)
-    printMatrix(modelview)*/
-
     GL11.glTranslatef(-cam.getPosition.x, -cam.getPosition.y, -cam.getPosition.z);
   }
 
@@ -145,15 +130,6 @@ object Renderer {
   }
 
   def glColor (color: Color) = GL11.glColor4f(color.r, color.g, color.b, color.a)
-
-/*  def drawLines (points: List[Vector2], color: Color) = {
-    GL11.glPushAttrib(GL11.GL_CURRENT_BIT)
-    glColor(color)
-    GL11.glBegin(GL11.GL_LINE_LOOP)
-    points.foreach(grVertex2f)
-    GL11.glEnd
-    GL11.glPopAttrib
-  }*/
 
   def drawWorldAxis (size: Float) = {
     drawLine(Vector3(0,0,0), Vector3(1,0,0)*size, COL_RED, size)

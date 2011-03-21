@@ -10,8 +10,7 @@ import engine._
 import org.newdawn.slick.opengl._
 import java.io.FileInputStream
 import java.io.IOException
-
-
+import collection.mutable.HashSet
 
 //A mesh is simply a collection of buffers that will be draw
 //It originally consist of set of buffers for vertices, normals, tex coords and indices
