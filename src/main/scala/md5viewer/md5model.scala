@@ -60,11 +60,13 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
   val localTex = loadTex(shader+"_local.tga", GL_LINEAR)
   val specularTex = loadTex(shader+"_s.tga", GL_LINEAR)
 
-  val vertBuffer = BufferUtils.createFloatBuffer(verts.length*3)
-  val normalBuffer = BufferUtils.createFloatBuffer(verts.length*3)
-  val tangentBuffer = BufferUtils.createFloatBuffer(verts.length*3)
-  val indicesBuffer = createIndicesBuffer()
-  val texCoordsBuffer = createTexCoordsBuffer()
+  val mesh = new engine.Mesh(verts.length, tris.length)
+  mesh.addTex(GL_TEXTURE0, colorTex, "colorTex", 0)
+  mesh.addTex(GL_TEXTURE1, localTex, "localTex", 1)
+  mesh.addTex(GL_TEXTURE2, specularTex, "specularTex", 2)
+
+  fillIndicesBuffer()
+  fillTexCoordsBuffer()
 
   def loadTex (file: String, filter: Int) = {
     try {
@@ -75,22 +77,20 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
     }
   }
 
-  def createIndicesBuffer () : IntBuffer = {
-    val buff = BufferUtils.createIntBuffer(tris.length*3)
+  def fillIndicesBuffer () {
+    val buff = mesh.indicesBuffer
+    buff.rewind()
     for (tri <- tris) {
       buff.put(tri.indices)
     }
-    buff.rewind()
-    buff
   }
 
-  def createTexCoordsBuffer () : FloatBuffer = {
-    val texCoordsBuff = BufferUtils.createFloatBuffer(verts.length*2)
+  def fillTexCoordsBuffer () {
+    val texCoordsBuff = mesh.texCoordsBuffer
     for (vert <- verts) {  
       texCoordsBuff.put(vert.texCoordU)
       texCoordsBuff.put(vert.texCoordV)
     }
-    texCoordsBuff
   }
 
   //Calculate initial skin. Called once just after model loading.
@@ -98,7 +98,8 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
   def initialSkin (joints: List[Joint]) {
     val vertPos = new Array[Vector3](verts.length)
     val texCoords = new Array[Float](verts.length*2)
-    vertBuffer.rewind()
+
+    val vertBuffer = mesh.vertBuffer
 
     //Calculate initial vertex position
     for (i <- 0 until verts.length) {  
@@ -172,6 +173,9 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
       buff.put(v.y)
       buff.put(v.z)
     }
+    val vertBuffer = mesh.vertBuffer
+    val normalBuffer = mesh.normalBuffer
+    val tangentBuffer = mesh.getAttribBuffer("tangent")
     vertBuffer.rewind()
     normalBuffer.rewind()
     tangentBuffer.rewind()
@@ -219,57 +223,12 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
     }
   }
 
-  def draw (glProgram:GLSLProgram) {
-    bindTex(GL_TEXTURE0, colorTex)
-    glProgram.setSamplerUnit("colorTex", 0)
-    bindTex(GL_TEXTURE1, localTex)
-    glProgram.setSamplerUnit("localTex", 1)
-    bindTex(GL_TEXTURE2, specularTex)
-    glProgram.setSamplerUnit("specularTex", 2)
-
-    vertBuffer.rewind()
-    glVertexPointer(3, 0, vertBuffer)
-    texCoordsBuffer.rewind()
-    //We don't need to bind one tex coord array per texture, since they all have the same coords
-    //The shader will take care of using the first tex coord array for all of them
-    glClientActiveTexture(GL_TEXTURE0)
-    glTexCoordPointer(2, 0, texCoordsBuffer)
-    normalBuffer.rewind()
-    glNormalPointer(0, normalBuffer)
-
-    tangentBuffer.rewind()
-    glProgram.setAttribPointer("tangent", 3, false, tangentBuffer) 
-    //Renderer.checkGLError("tangent attrib pointer")
-    glDrawElements(GL_TRIANGLES, indicesBuffer)
+  def draw (glProgram: GLSLProgram) {
+     mesh.draw(glProgram)
   }
 
   def drawNormals () {
-    glActiveTexture(GL_TEXTURE0)
-    glDisable(GL_TEXTURE_2D)
-    glActiveTexture(GL_TEXTURE1)
-    glDisable(GL_TEXTURE_2D)
-
-    vertBuffer.rewind()
-    normalBuffer.rewind()
-    tangentBuffer.rewind()
-    
-    def drawLine (start: (FloatBuffer, Int), dir: (FloatBuffer, Int)) {
-      def v (b: FloatBuffer, i: Int) = Vector3(b.get(i), b.get(i+1), b.get(i+2))
-      def glv (v: Vector3) { glVertex3f(v.x, v.y, v.z) }
-      val startV = v(start._1, start._2)
-      glv(startV)
-      val dirV = v(dir._1, dir._2)
-      glv(startV+dirV)
-    }
-
-    glBegin(GL_LINES)
-    for (i <- Range(0,verts.length*3,3)) {
-      glColor4f(1,0,0,1)
-      drawLine((vertBuffer,i), (normalBuffer,i))
-      glColor4f(0,1,0,1)
-      drawLine((vertBuffer,i), (tangentBuffer,i))
-    }
-    glEnd()
+     mesh.drawNormals()
   }
 
 }
