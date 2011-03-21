@@ -14,8 +14,6 @@ import scala.collection.mutable.HashMap
 import utils._
 
 trait FrameListener {
-  //Returns the camera that should be used for rendering
-  def currentCamera () : Camera
   def render ()
   def move (elapsedTime: Float)
 }
@@ -76,7 +74,7 @@ object Kernel {
     while(loop) {
       Timer.tick
       EventsManager.handleEvents
-      Renderer.preRender(frameListener.currentCamera)
+      Renderer.preRender
 
       frameListener.move(timer.getTime)
       //FIXME: should we let the timer run instead ?

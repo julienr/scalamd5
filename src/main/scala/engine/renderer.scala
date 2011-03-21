@@ -9,9 +9,6 @@ object Renderer {
 
   val cameras = new HashSet[Camera]()
 
-  //always store the last camera used for rendering
-  private var lastRenderedCamera : Camera = null
-
   /**
    * We work with virtual screen coordinates to get resolution independence.
    * Whatever the user resolution is, the usable area to place our object is (screenWidth, screenHeight)
@@ -51,7 +48,6 @@ object Renderer {
     realWidth = w
     realHeight = h
     GL11.glViewport(0, 0, w, h)
-    lastRenderedCamera = null //will trigger a perspective recalculation
   }
 
   def registerCamera (c: Camera) = cameras.add(c)
@@ -95,29 +91,27 @@ object Renderer {
     GL11.glVertex3f( -1.0f, -1.0f,  1.0f ); 
     GL11.glEnd( );                            
   }
+
+  def setCameraTransform (cam: Camera) {
+      updateGLProjFromCamera(cam);
+      val matrix = cam.getRotation.getConjugate.getMatrix
+      GL11.glMultMatrix(matrix.getFloatBuffer);
+      GL11.glTranslatef(-cam.getPosition.x, -cam.getPosition.y, -cam.getPosition.z);
+  }
   
   /**
   * Called once before each frame
   */
-  def preRender (cam: Camera) = {
-    //If camera has changed, we need to recalculate projection
-    if (cam != lastRenderedCamera) {
-      updateGLProjFromCamera(cam);
-      lastRenderedCamera = cam
-    }
+  def preRender () = {
     GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT)
     GL11.glLoadIdentity
-
-    val matrix = cam.getRotation.getConjugate.getMatrix
-    GL11.glMultMatrix(matrix.getFloatBuffer);
-    GL11.glTranslatef(-cam.getPosition.x, -cam.getPosition.y, -cam.getPosition.z);
   }
 
   private def updateGLProjFromCamera (cam: Camera) : Unit = {
     GL11.glMatrixMode(GL11.GL_PROJECTION)
     GL11.glLoadIdentity
 
-    Console.println("aspectRatio : " + aspectRatio)
+    //Console.println("aspectRatio : " + aspectRatio)
     GLU.gluPerspective(cam.hFov/2.0f, aspectRatio, cam.zNear, cam.zFar)
     
     //FIXME: replace gluPerspective by our own perspective function

@@ -90,10 +90,8 @@ object Main extends FrameListener {
 
 
   @Override
-  def currentCamera () : Camera = camera
-
-  @Override
   def render () {
+    Renderer.setCameraTransform(camera)
     //System.out.println("Render");
     Renderer.drawWorldAxis(1);
     //Renderer.drawPyramid()
