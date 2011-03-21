@@ -3,8 +3,11 @@ import utils._
 import scala.util.parsing.combinator._
 import scala.util.matching.Regex
 import scala.util.parsing.combinator.lexical._
+import scala.collection.mutable.HashSet
 import scala.io.Source
 import collection.immutable.HashMap
+import scala.util.parsing.combinator.syntactical.TokenParsers
+import scala.util.parsing.combinator.token.Tokens
 import scala.util.parsing.input.CharArrayReader.EofCh
 
 object MD5Loader {
@@ -23,10 +26,10 @@ object MD5Loader {
     loaded
   }
 
-  def loadFromDirectory (file: String) : MD5Model = {
+  def loadModel (file: String) : MD5Model = {
     val lines = io.Source.fromFile(file).mkString
     val p = new MD5ModelParser
-    val model = p.parseAll(p.model, MD5Loader.removeComments(lines)) match {
+    val model = p.parse(lines) match {
       case p.Success(m,_) => m
       case x => throw new Exception("Error loading : " + x)
     }
@@ -36,46 +39,45 @@ object MD5Loader {
   def loadAnim (file: String) : MD5Anim = {
     val lines = io.Source.fromFile(file).mkString
     val p = new MD5AnimParser
-    val anim = p.parseAll(p.anim, MD5Loader.removeComments(lines)) match {
+    val anim = p.parse(lines) match {
       case p.Success(a,_) => a
       case x => throw new Exception("Error loading : " + x)
     }
     anim
   }
 
-  class MD5GenericParser extends JavaTokenParsers {
-//    override val whiteSpace = """\s""".r | ('/' ~ '/' ~ """[^\\n]""".r) //rep(chrExcept(EofCh, '\n')))
-    override val whiteSpace = """(\s+)|(//[^\n]*)""".r
-    override protected def handleWhiteSpace(source: java.lang.CharSequence, offset: Int): Int = {
+  class MD5GenericParser extends TokenParsers {
+    override type Tokens = MD5Tokens
+    override val lexical = new MD5Lexical
 
-      (whiteSpace findPrefixMatchOf (source.subSequence(offset, source.length))) match {
-        case Some(matched) => offset + matched.end
-        case None => offset
-      }
-    }
+    protected val keywordCache : collection.mutable.HashMap[String, Parser[String]] = collection.mutable.HashMap.empty
 
-    def version = "MD5Version" ~> natNumber
+    import lexical.{StringLit, NumericLit, Keyword}
 
-    def commandline = "commandline" ~> quotedString
+    implicit def keyword(chars: String): Parser[String] =
+      keywordCache.getOrElseUpdate(chars, accept(Keyword(chars)) ^^ (_.chars))
 
-    //just a shortcut
-    def floatNumber = floatingPointNumber ^^ { _.toFloat }
-    //int >= 0
-    def natNumber = decimalNumber ^^ { _.toInt }
-    //int
-    def intNumber = wholeNumber ^^ { _.toInt }
+    def LBRACE = Keyword("{")
+    def RBRACE = Keyword("}")
+    def LPAREN = Keyword("(")
+    def RPAREN = Keyword(")")
+    def braces[T](p: => Parser[T]): Parser[T] = LBRACE ~> p <~ RBRACE
+    def parens[T](p: => Parser[T]): Parser[T] = LPAREN ~> p <~ RPAREN
 
-    def quotedString = stringLiteral ^^ { str => 
-     //def quotedString: Parser[String] = ("\""+"""([^"])*"""+"\"").r ^^ { str => 
-      val tr = str.trim()
-      if (!(tr.charAt(0) == '"' && tr.charAt(str.length-1) == '"')) {
-        throw new LoadingError("Expected quoted string : " + tr)
-      }
-      //Console.println(tr)
-      tr.substring(1, tr.length-1)
-    }
+    def numericLit: Parser[String] =
+      elem("number", _.isInstanceOf[NumericLit]) ^^ (_.chars)
 
-    def vector3 = "(" ~> floatNumber ~ floatNumber ~ floatNumber <~ ")" ^^ {
+    def stringLit: Parser[String] =
+      elem("string literal", _.isInstanceOf[StringLit]) ^^ (_.chars)
+
+    def version = keyword("MD5Version") ~> intNumber
+
+    def commandline = keyword("commandline") ~> stringLit
+
+    def floatNumber = numericLit ^^ { case lit => java.lang.Float.parseFloat(lit) }
+    def intNumber = numericLit ^^ { _.toInt }
+
+    def vector3 = parens(floatNumber ~ floatNumber ~ floatNumber) ^^ {
       case x ~ y ~ z => {
         new Vector3(x,y,z)
       }
@@ -85,20 +87,25 @@ object MD5Loader {
 
   //A parser for MD5 model files. Calling parseAll(model, ...) will return a Model
   class MD5ModelParser extends MD5GenericParser {
+    def parse(s:String) = {
+      val tokens = new lexical.Scanner(s)
+      phrase(model)(tokens)
+    }
+
     def model = version ~ commandline ~ numJoints ~ numMeshes ~ joints ~ meshes ^^ {
       case v ~ cl ~ numJoints ~ numMeshes ~ joints ~ meshes => {
         new MD5Model(v, cl, checkNum("numJoints", numJoints, joints), checkNum("numMeshes", numMeshes, meshes))
       }
     }
  
-    def numJoints = "numJoints" ~> natNumber
+    def numJoints = keyword("numJoints") ~> intNumber
 
-    def numMeshes = "numMeshes" ~> natNumber
+    def numMeshes = keyword("numMeshes") ~> intNumber
 
-    def joints = "joints" ~> "{" ~> rep(joint) <~ "}"
+    def joints = keyword("joints") ~> braces(rep(joint))
 
     var jointCnt = 0
-    def joint = quotedString ~ intNumber ~ vector3 ~ vector3 ^^ {
+    def joint = stringLit ~ intNumber ~ vector3 ~ vector3 ^^ {
       case name ~ parent ~ pos ~ compressedQuat => {
         val r = new Joint(jointCnt, name, parent, pos, new Quaternion(compressedQuat.x, compressedQuat.y, compressedQuat.z))
         jointCnt += 1
@@ -108,37 +115,37 @@ object MD5Loader {
 
     def meshes = rep(mesh)
 
-    def mesh = "mesh" ~> "{" ~> shader ~ verts ~ tris ~ weights <~ "}" ^^ {
+    def mesh = keyword("mesh") ~> braces(shader ~ verts ~ tris ~ weights) ^^ {
       case shader ~ verts ~ tris ~ weights => {
         new Mesh(shader, verts, tris, weights)
       }
     }
 
-    def shader = "shader" ~> quotedString 
+    def shader = keyword("shader") ~> stringLit
 
-    def verts = "numverts" ~> natNumber ~ rep(vert) ^^ { case numVerts ~ verts => 
+    def verts = keyword("numverts") ~> intNumber ~ rep(vert) ^^ { case numVerts ~ verts =>
       checkNum("numVerts", numVerts, verts);
     } 
 
-    def vert = "vert" ~> natNumber ~ "(" ~ floatNumber ~ floatNumber ~ ")" ~ intNumber ~ intNumber ^^ {
-      case vertNum ~ "(" ~ u ~ v ~ ")" ~ firstWeight ~ numWeights => {
+    def vert = keyword("vert") ~> intNumber ~> parens(floatNumber ~ floatNumber) ~ intNumber ~ intNumber ^^ {
+      case u ~ v ~ firstWeight ~ numWeights => {
         new Vert(u, v, firstWeight, numWeights)
       }
     }
 
-    def tris = "numtris" ~> natNumber ~ rep(tri) ^^ { case numTris ~ tris => 
+    def tris = keyword("numtris") ~> intNumber ~ rep(tri) ^^ { case numTris ~ tris =>
       checkNum("numTris", numTris, tris);
     }
-    def tri = "tri" ~> natNumber ~ intNumber ~ intNumber ~ intNumber ^^ {
+    def tri = keyword("tri") ~> intNumber ~ intNumber ~ intNumber ~ intNumber ^^ {
       case triNum ~ i1 ~ i2 ~ i3 => {
         new Tri(List(i1,i2,i3).toArray)
       }
     }
 
-    def weights = "numweights" ~> natNumber ~ rep(weight) ^^ { case numWeights ~ weights => 
+    def weights = keyword("numweights") ~> intNumber ~ rep(weight) ^^ { case numWeights ~ weights =>
       checkNum("numWeights", numWeights, weights) 
     }
-    def weight = "weight" ~> natNumber ~ intNumber ~ floatNumber ~ vector3 ^^ {
+    def weight = keyword("weight") ~> intNumber ~ intNumber ~ floatNumber ~ vector3 ^^ {
       case weightNum ~ boneIndex ~ bias ~ w => {
         new Weight(boneIndex, bias, w)
       }
@@ -147,33 +154,38 @@ object MD5Loader {
 
 
   class MD5AnimParser extends MD5GenericParser {
+    def parse(s:String) = {
+      val tokens = new lexical.Scanner(s)
+      phrase(anim)(tokens)
+    }
+
     def anim = version ~ commandline ~ numFrames ~ numJoints ~ frameRate ~ numAnimatedComponents ~ hierarchy ~ bounds ~ baseframe ~ rep(frame) ^^ {
       case version ~ commandline ~ numFrames ~ numJoints ~ frameRate ~ numAnimatedComponents ~ hierarchy ~ bounds ~ baseFrame ~ frames => {
         new MD5Anim(version, commandline, hierarchy, baseFrame, frames, frameRate)
       }
     }
 
-    def numFrames = "numFrames" ~> natNumber
-    def numJoints = "numJoints" ~> natNumber
-    def frameRate = "frameRate" ~> natNumber
-    def numAnimatedComponents = "numAnimatedComponents" ~> natNumber
+    def numFrames = keyword("numFrames") ~> intNumber
+    def numJoints = keyword("numJoints") ~> intNumber
+    def frameRate = keyword("frameRate") ~> intNumber
+    def numAnimatedComponents = keyword("numAnimatedComponents") ~> intNumber
 
-    def hierarchy = "hierarchy" ~> "{" ~> rep(jointInfo) <~ "}"  
-    def jointInfo = quotedString ~ intNumber ~ intNumber ~ intNumber ^^ {
+    def hierarchy = keyword("hierarchy") ~> braces(rep(jointInfo))
+    def jointInfo = stringLit ~ intNumber ~ intNumber ~ intNumber ^^ {
       case jointName ~ parent ~ flags ~ frameIndex => new JointInfo(parent, flags, frameIndex)
     }
 
-    def bounds = "bounds" ~> "{" ~> rep(bound) <~ "}"
+    def bounds = keyword("bounds") ~> braces(rep(bound))
     def bound = vector3 ~ vector3 
 
-    def baseframe = "baseframe" ~> "{" ~> rep(bframe) <~ "}" ^^ { 
+    def baseframe = keyword("baseframe") ~> braces(rep(bframe)) ^^ {
       new BaseFrame(_)
     }
     def bframe = vector3 ~ vector3 ^^ {
       case pos ~ rot => new JointBaseFrame(pos, new Quaternion(rot.x, rot.y, rot.z))
     }
 
-    def frame = "frame" ~> natNumber ~ "{" ~ rep(floatNumber) <~ "}" ^^ { case frameNum ~ "{" ~ comps => new Frame(comps.toArray) }
+    def frame = keyword("frame") ~> intNumber ~ braces(rep(floatNumber)) ^^ { case frameNum ~ comps => new Frame(comps.toArray) }
   }
 }
 

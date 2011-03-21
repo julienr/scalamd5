@@ -6,39 +6,6 @@ import utils._
 
 class MD5ModelParserSpec extends WordSpec with ShouldMatchers {
   "MD5ModelParser" should {
-    "correctly remove comments" in {
-      val input = 
-        """
-        line 1
-        line 2 // blahf comment
-        line 3
-        """
-      val res = MD5Loader.removeComments(input)
-      res should equal(
-        """
-        line 1
-        line 2 
-        line 3
-        """)
-    }
-
-    "not remove // occuring in quoted string" in {
-      val input = 
-        """
-        line "//not a comment" //comment
-        line 2 // blahf comment
-        line 3
-        """
-      val res = MD5Loader.removeComments(input)
-      res should equal(
-        """
-        line "//not a comment" 
-        line 2 
-        line 3
-        """)
-
-    }
-
     "parse a minimal file" in {
       val input = """
         MD5Version 10
@@ -46,25 +13,27 @@ class MD5ModelParserSpec extends WordSpec with ShouldMatchers {
         numJoints 1
         numMeshes 1
         joints {
-          "origin" -1 ( 0 0 0 ) ( -0.5 -0.5 -0.5 ) // none
+          "origin" -1 ( 0.2 0.3 0.4 ) ( -0.5 -0.5 -0.5 ) // none
         }
 
         mesh {
           //my mesh
           shader "blahShader"
 
-          numverts 1
+          numverts 3
           vert 0 ( 0.5 0.5 ) 0 1
+          vert 1 ( -0.5 -0.5 ) 0 1
+          vert 2 ( 1.5 1.5 ) 0 1
 
           numtris 1
-          tri 0 2 3 4
+          tri 0 0 1 2
 
           numweights 1
           weight 0 0 3.3 ( 0.5 0.3 0.7 )
         }
         """
       val p = new MD5Loader.MD5ModelParser
-      p.parseAll(p.model, MD5Loader.removeComments(input)) match {
+      p.parse(input) match {
         case p.Success(m,_) => {
           m.version should equal(10)
           m.commandLine should equal("blah")
@@ -74,7 +43,7 @@ class MD5ModelParserSpec extends WordSpec with ShouldMatchers {
           val j = m.joints(0)
           j.name should equal("origin")
           j.parentIndex should equal(-1)
-          assert(j.position ~= Vector3(0,0,0))
+          assert(j.position ~= Vector3(0.2f,0.3f,0.4f))
           j.rotation.x should equal(-0.5)
           j.rotation.y should equal(-0.5)
           j.rotation.z should equal(-0.5)
@@ -83,7 +52,7 @@ class MD5ModelParserSpec extends WordSpec with ShouldMatchers {
           val mesh = m.meshes(0)
           mesh.shader should equal("blahShader")
 
-          mesh.verts.length should equal(1)
+          mesh.verts.length should equal(3)
           val v = mesh.verts(0)
           v.texCoordU should equal(0.5)
           v.texCoordV should equal(0.5)
@@ -91,7 +60,7 @@ class MD5ModelParserSpec extends WordSpec with ShouldMatchers {
           v.numWeights should equal(1)
 
           mesh.tris.length should equal(1)
-          mesh.tris(0).indices should equal(List(2,3,4).toArray)
+          mesh.tris(0).indices should equal(List(0,1,2).toArray)
 
           mesh.weights.length should equal(1)
           val w = mesh.weights(0)
@@ -133,7 +102,7 @@ class MD5AnimParserSpec extends WordSpec with ShouldMatchers {
       }
       """
       val p = new MD5Loader.MD5AnimParser
-      val anim = p.parseAll(p.anim, MD5Loader.removeComments(input)) match {
+      val anim = p.parse(input) match {
         case p.Success(a,_) => a
         case x => fail(x.toString)
       }

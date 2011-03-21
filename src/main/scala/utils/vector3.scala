@@ -24,9 +24,7 @@ class Vector3 (ax: Float, ay: Float, az: Float) {
   }
 
   def normalize () : Unit =
-    if (this.length() == 0) 
-      throw new Error ("Trying to normalize a zero-length vector") 
-    else 
+    if (this.length() > 0) 
       this /= this.length() 
 
   def getNormalized () : Vector3 = this/this.length()

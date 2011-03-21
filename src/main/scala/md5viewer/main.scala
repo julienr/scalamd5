@@ -79,7 +79,7 @@ object Main extends FrameListener {
     val fs = new FragmentShader(io.Source.fromFile("data/shaders/fragment.glsl").mkString)
     glProgram = new GLSLProgram(vs, fs)
 
-    model = MD5Loader.loadFromDirectory(args(0))
+    model = MD5Loader.loadModel(args(0))
     if (args.length > 1) {
       anim = MD5Loader.loadAnim(args(1))
       Console.println("Anim loaded")

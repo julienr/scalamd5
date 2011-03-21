@@ -17,8 +17,9 @@ class LWJGLProject(info: ProjectInfo) extends DefaultProject(info) {
       case "sunos" => "solaris" -> ":"
       case x => x -> ":"
     }
-
-    override def runJVMOptions = super.runJVMOptions ++ Seq("-Djava.library.path=" + System.getProperty("java.library.path") + separator + ("lib" / "native" / os))
+    
+    val nativeLibsOpt = "-Djava.library.path=" + System.getProperty("java.library.path") + separator + ("lib" / "native" / os)
+    override def runJVMOptions = super.runJVMOptions ++ Seq(nativeLibsOpt)
     override def scalaJars = Seq(buildLibraryJar.asFile, buildCompilerJar.asFile)
   })
 }
