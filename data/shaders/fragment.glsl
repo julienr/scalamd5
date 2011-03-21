@@ -37,7 +37,7 @@ void main () {
     float NdotHV = max(dot(normal, hv), 0.0);
     vec4 specular = texture2D(specularTex, gl_TexCoord[0].st);
     //gl_FragColor = vec4(vec3(NdotHV), 1);
-    float shininess = 50;
+    float shininess = 50.0f;
     vec4 lightSpecular = vec4(10,10,10,1);
     gl_FragColor += lightSpecular*specular*pow(NdotHV, shininess);
   }
