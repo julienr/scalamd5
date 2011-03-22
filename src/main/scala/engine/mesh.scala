@@ -45,7 +45,6 @@ class GLEntity {
   def drawNormals () {
     glPushMatrix()
     Renderer.applyRotation(rotation)
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY)
     for (m <- meshes) {
       m.drawNormals()
     }
@@ -77,9 +76,11 @@ class GLMesh (numVerts: Int, numTris: Int) {
 
   def draw (glProgram: GLSLProgram) {
     //Bind textures
-    for ((channel, texInfo) <- textures) {
-      bindTex(channel, texInfo.tex)
-      glProgram.setSamplerUnit(texInfo.samplerName, texInfo.samplerUnit)
+    if (glProgram != null) {
+      for ((channel, texInfo) <- textures) {
+        bindTex(channel, texInfo.tex)
+        glProgram.setSamplerUnit(texInfo.samplerName, texInfo.samplerUnit)
+      }
     }
 
     vertBuffer.rewind()
@@ -92,14 +93,21 @@ class GLMesh (numVerts: Int, numTris: Int) {
     glNormalPointer(0, normalBuffer)
 
     //Bind all supplementary attrib buffers
-    for ((attribName, buffer) <- attributeBuffers) {
-      buffer.rewind()
-      glProgram.setAttribPointer(attribName, 3, false, buffer)
+    if (glProgram != null) {
+      for ((attribName, buffer) <- attributeBuffers) {
+        buffer.rewind()
+        glProgram.setAttribPointer(attribName, 3, false, buffer)
+      }
+      Renderer.checkGLError("attrib pointers")
     }
-    Renderer.checkGLError("tangent attrib pointer")
     indicesBuffer.rewind()
     glDrawElements(GL_TRIANGLES, indicesBuffer)
 
+    //unbind tex
+    if (glProgram != null) {
+      for ((channel, texInfo) <- textures)
+        unbindTex(channel, texInfo.tex)
+    }
   }
 
   def drawNormals () {
@@ -144,6 +152,12 @@ class GLMesh (numVerts: Int, numTris: Int) {
     } else {
       glDisable(GL_TEXTURE_2D)
     }
+  }
+
+  def unbindTex (unit: Int, texture: Texture) {
+    glActiveTexture(unit)
+    glDisable(GL_TEXTURE_2D)
+
   }
 }
 

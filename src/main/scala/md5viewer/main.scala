@@ -4,6 +4,7 @@ import org.lwjgl.input.Keyboard
 import org.lwjgl.opengl.GL11._
 import org.lwjgl.opengl.GL13._
 import org.lwjgl._
+import org.lwjgl.util.glu.GLU._
 
 
 import utils._
@@ -44,7 +45,7 @@ object Main extends FrameListener {
 
       //light
       glPointSize(5.0f)
-      glColor4f(1,0,0,0)
+      glColor4f(1,0,0,1)
       glBegin(GL_POINTS)
       glVertex3f(position.x, position.y, position.z)
       glEnd()
@@ -80,7 +81,7 @@ object Main extends FrameListener {
 
       //light
       glPointSize(5.0f)
-      glColor4f(1,0,0,0)
+      glColor4f(1,0,0,1)
       glBegin(GL_POINTS)
       glVertex3f(position.x, position.y, position.z)
       glEnd()
@@ -127,14 +128,25 @@ object Main extends FrameListener {
 
   @Override
   def render () {
-    Renderer.setCameraTransform(camera)
-    //System.out.println("Render");
-    Renderer.drawWorldAxis(1);
-    //Renderer.drawPyramid()
+    Renderer.saveMatrices()
+    Renderer.bindFBO() 
+    glMatrixMode(GL_PROJECTION)
+    glLoadIdentity()
+    gluPerspective(45.0f, 1.0f, 1.0f, 1000.0f)
+    glMatrixMode(GL_MODELVIEW)
+    glLoadIdentity()
+    gluLookAt(light.position.x, light.position.y, light.position.z,
+              light.lookAt.z, light.lookAt.y, light.lookAt.z,
+              0,1,0)
+    model.glentity.draw(null)
+    Renderer.unbindFBO()
+    Renderer.restoreMatrices()
 
-/*    glProgram.bind()
-    //Calculate view-space light pos
-    glProgram.setUniform("lightPos", camera.getRotation.getConjugate.rotate(light.position-camera.getPosition))*/
+
+    //Normal rendering
+    Renderer.setCameraTransform(camera)
+    Renderer.drawWorldAxis(1);
+
     glProgram.bind()
     glProgram.setUniform("lightPos", camera.getRotation.getConjugate.rotate(light.position-camera.getPosition))
     glProgram.setUniform("eyeSpotDir", camera.getRotation.getConjugate.rotate(light.lookAt-light.position-camera.getPosition))
@@ -146,8 +158,42 @@ object Main extends FrameListener {
     glProgram.unbind()
 
     //model.drawNormals()
-
     light.draw()
+
+    glMatrixMode(GL_PROJECTION)
+    glLoadIdentity()
+    glOrtho(0, 640, 480, 0, 0, 1)
+    glMatrixMode(GL_MODELVIEW)
+    glLoadIdentity()
+
+    glDisableClientState(GL_VERTEX_ARRAY)
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY)
+    glDisableClientState(GL_NORMAL_ARRAY)
+    glActiveTexture(GL_TEXTURE0)
+    glEnable(GL_TEXTURE_2D)
+    //model.meshes(0).colorTex.bind()
+    //TODO: should probably write a shader to draw depth texture in a meaningfull way
+    glBindTexture(GL_TEXTURE_2D, Renderer.depthTextureId)
+
+    glDisable(GL_CULL_FACE)
+
+    glColor4f(1,1,1,1)
+    glBegin(GL_QUADS)
+      glVertex2i(540,380)
+      glTexCoord2f(0,0)
+
+      glVertex2i(640,380)
+      glTexCoord2f(1,0)
+
+      glVertex2i(640,480)
+      glTexCoord2f(1,1)
+
+      glVertex2i(540,480)
+      glTexCoord2f(0,1)
+    glEnd()
+
+    glDisable(GL_TEXTURE_2D)
+    glEnable(GL_CULL_FACE)
   }
 
   @Override

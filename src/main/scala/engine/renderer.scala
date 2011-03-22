@@ -1,6 +1,8 @@
 package engine
 import utils._
 import org.lwjgl.opengl._
+import org.lwjgl.opengl.GL11._
+import org.lwjgl.opengl.ARBFramebufferObject._
 import org.lwjgl.util.glu._
 import scala.collection.mutable.HashSet
 
@@ -9,13 +11,12 @@ object Renderer {
 
   val cameras = new HashSet[Camera]()
 
-  /**
-   * We work with virtual screen coordinates to get resolution independence.
-   * Whatever the user resolution is, the usable area to place our object is (screenWidth, screenHeight)
-   * FIXME: this doesn't work with 16/9 ratio or anything else (well it will work, but distorted)
-   */
-  val screenWidth = 800
-  val screenHeight = 600
+  //framebuffer object and depth texture used for shadow rendering
+  var depthTextureId : Int = -1
+  var fboId : Int = -1
+
+  var shadowMapWidth = 0
+  var shadowMapHeight = 0
 
   def initialize (w: Int, h: Int) {
     //initialization code
@@ -28,6 +29,64 @@ object Renderer {
 /*    GL11.glEnable(GL11.GL_BLEND)
     GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA)*/
     resizeWindow(w,h)
+  }
+
+  private def initializeFBO (screenWidth: Int, screenHeight: Int) {
+    val shadowMapRatio = 2
+    shadowMapWidth = screenWidth*shadowMapRatio
+    shadowMapHeight = screenHeight*shadowMapRatio
+    if (depthTextureId == -1) { //first time initialization
+      depthTextureId = glGenTextures()
+      glBindTexture(GL_TEXTURE_2D, depthTextureId)
+
+      // TODO: Use GL_LINEAR for PCF ?
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+      // Remove artefact on the edges of the shadowmap
+      glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
+      glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP );
+
+      fboId = glGenFramebuffers();
+    }
+
+    glBindTexture(GL_TEXTURE_2D, depthTextureId)
+  	// No need to force GL_DEPTH_COMPONENT24, drivers usually give you the max precision if available 
+	  glTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadowMapWidth, shadowMapHeight, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, null.asInstanceOf[java.nio.IntBuffer]);
+	  glBindTexture(GL_TEXTURE_2D, 0);
+
+
+    glBindFramebuffer(GL_FRAMEBUFFER, fboId)
+
+    //We won't bind a color texture to the fbo
+    glDrawBuffer(GL_NONE)
+    glReadBuffer(GL_NONE)
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTextureId, 0)
+    val status = glCheckFramebufferStatus(GL_FRAMEBUFFER)
+    if (status != GL_FRAMEBUFFER_COMPLETE)
+      Console.println("Error initializing framebuffer")
+
+    //bind window-system framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, 0)
+    checkGLError("Framebuffer initialization")
+  }
+
+  def bindFBO () = glBindFramebuffer(GL_FRAMEBUFFER, fboId)
+  def unbindFBO() = glBindFramebuffer(GL_FRAMEBUFFER, 0)
+
+  def saveMatrices () {
+    glMatrixMode(GL_PROJECTION)
+    glPushMatrix()
+    glMatrixMode(GL_MODELVIEW)
+    glPushMatrix()
+  }
+
+  def restoreMatrices () {
+    glMatrixMode(GL_PROJECTION)
+    glPopMatrix()
+    glMatrixMode(GL_MODELVIEW)
+    glPopMatrix()
   }
 
   var realWidth : Int = 0
@@ -48,6 +107,8 @@ object Renderer {
     realWidth = w
     realHeight = h
     GL11.glViewport(0, 0, w, h)
+
+    initializeFBO(w,h)
   }
 
   def registerCamera (c: Camera) = cameras.add(c)
