@@ -2,6 +2,7 @@ package engine
 import utils._
 import org.lwjgl.opengl._
 import org.lwjgl.opengl.GL11._
+import org.lwjgl.opengl.GL14._
 import org.lwjgl.opengl.ARBFramebufferObject._
 import org.lwjgl.util.glu._
 import scala.collection.mutable.HashSet
@@ -12,6 +13,7 @@ object Renderer {
   val cameras = new HashSet[Camera]()
 
   //framebuffer object and depth texture used for shadow rendering
+  var colorTextureId : Int = -1
   var depthTextureId : Int = -1
   var fboId : Int = -1
 
@@ -32,10 +34,12 @@ object Renderer {
   }
 
   private def initializeFBO (screenWidth: Int, screenHeight: Int) {
-    val shadowMapRatio = 2
+    val shadowMapRatio = 1
     shadowMapWidth = screenWidth*shadowMapRatio
     shadowMapHeight = screenHeight*shadowMapRatio
     if (depthTextureId == -1) { //first time initialization
+      Console.println("First time FBO initialization")
+      //FBO depth tex
       depthTextureId = glGenTextures()
       glBindTexture(GL_TEXTURE_2D, depthTextureId)
 
@@ -44,25 +48,38 @@ object Renderer {
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
       // Remove artefact on the edges of the shadowmap
-      glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
-      glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP );
+      glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+      glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, /*GL_COMPARE_R_TO_TEXTURE*/GL_NONE)
+
+      //FBO color tex
+      colorTextureId = glGenTextures()
+
+      //FBO
       fboId = glGenFramebuffers();
     }
 
-    glBindTexture(GL_TEXTURE_2D, depthTextureId)
-  	// No need to force GL_DEPTH_COMPONENT24, drivers usually give you the max precision if available 
-	  glTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadowMapWidth, shadowMapHeight, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, null.asInstanceOf[java.nio.IntBuffer]);
-	  glBindTexture(GL_TEXTURE_2D, 0);
+    Console.println("shadow width/height : ("+shadowMapWidth+", "+shadowMapHeight+")")
 
+    glBindTexture(GL_TEXTURE_2D, depthTextureId)
+	  glTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadowMapWidth, shadowMapHeight, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, null.asInstanceOf[java.nio.IntBuffer]);
+
+
+    glBindTexture(GL_TEXTURE_2D, colorTextureId)
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, shadowMapWidth, shadowMapHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, null.asInstanceOf[java.nio.IntBuffer])
+
+	  glBindTexture(GL_TEXTURE_2D, 0);
 
     glBindFramebuffer(GL_FRAMEBUFFER, fboId)
 
     //We won't bind a color texture to the fbo
-    glDrawBuffer(GL_NONE)
-    glReadBuffer(GL_NONE)
+    /*glDrawBuffer(GL_NONE)
+    glReadBuffer(GL_NONE)*/
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTextureId, 0)
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTextureId, 0)
     val status = glCheckFramebufferStatus(GL_FRAMEBUFFER)
     if (status != GL_FRAMEBUFFER_COMPLETE)
       Console.println("Error initializing framebuffer")

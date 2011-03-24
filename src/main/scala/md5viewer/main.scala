@@ -20,6 +20,7 @@ object Main extends FrameListener {
   var anim : MD5Anim = null
 
   var glProgram : GLSLProgram = null
+  var depthProgram : GLSLProgram = null
 
   //point light position
   class PointLight {
@@ -112,9 +113,32 @@ object Main extends FrameListener {
 
     //Load shaders
     Renderer.checkGLError("Before shaders")
-    val vs = new VertexShader(io.Source.fromFile("data/shaders/spot_vertex.glsl").mkString)
-    val fs = new FragmentShader(io.Source.fromFile("data/shaders/spot_fragment.glsl").mkString)
-    glProgram = new GLSLProgram(vs, fs)
+
+    //Spot light bump
+    glProgram = {
+      val vs = new VertexShader(io.Source.fromFile("data/shaders/spot_vertex.glsl").mkString)
+      val fs = new FragmentShader(io.Source.fromFile("data/shaders/spot_fragment.glsl").mkString)
+      new GLSLProgram(vs, fs)
+    }
+
+    //Shaders to render the depth texture in a visible way (for DEBUG)
+    depthProgram = {
+      val vs = new VertexShader("""
+        void main () {
+          gl_Position = ftransform();
+          gl_TexCoord[0] = gl_MultiTexCoord0;
+        }
+        """)
+      val fs = new FragmentShader("""
+        uniform sampler2D shadowMap;
+        void main () {
+          /*float depth = texture2D(shadowMap, gl_TexCoord[0].st).r;
+          gl_FragColor = vec4(vec3(depth),1);*/
+          gl_FragColor = texture2D(shadowMap, gl_TexCoord[0].st);
+        }
+        """)
+      new GLSLProgram(vs, fs)
+    }
 
     model = MD5Loader.loadModel(args(0))
     if (args.length > 1) {
@@ -173,10 +197,12 @@ object Main extends FrameListener {
     glEnable(GL_TEXTURE_2D)
     //model.meshes(0).colorTex.bind()
     //TODO: should probably write a shader to draw depth texture in a meaningfull way
-    glBindTexture(GL_TEXTURE_2D, Renderer.depthTextureId)
-
+    //glBindTexture(GL_TEXTURE_2D, Renderer.depthTextureId)
+    glBindTexture(GL_TEXTURE_2D, Renderer.colorTextureId)
     glDisable(GL_CULL_FACE)
 
+    depthProgram.bind()
+    depthProgram.setSamplerUnit("shadowMap", 0)
     glColor4f(1,1,1,1)
     glBegin(GL_QUADS)
       glVertex2i(540,380)
@@ -191,6 +217,7 @@ object Main extends FrameListener {
       glVertex2i(540,480)
       glTexCoord2f(0,1)
     glEnd()
+    depthProgram.unbind()
 
     glDisable(GL_TEXTURE_2D)
     glEnable(GL_CULL_FACE)
