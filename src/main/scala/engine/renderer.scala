@@ -12,13 +12,13 @@ object Renderer {
 
   val cameras = new HashSet[Camera]()
 
-  //framebuffer object and depth texture used for shadow rendering
-  var colorTextureId : Int = -1
-  var depthTextureId : Int = -1
-  var fboId : Int = -1
+  var fbo: Framebuffer = null
 
-  var shadowMapWidth = 0
-  var shadowMapHeight = 0
+  def colorTextureId : Int = fbo.colorTex
+  def depthTextureId : Int = fbo.depthTex
+
+  def shadowMapWidth = fbo.width
+  def shadowMapHeight = fbo.height
 
   def initialize (w: Int, h: Int) {
     //initialization code
@@ -35,7 +35,7 @@ object Renderer {
 
   import org.lwjgl.opengl.GL31._
   private def initializeFBO (screenWidth: Int, screenHeight: Int) {
-    val shadowMapRatio = 1
+    /*val shadowMapRatio = 1
     shadowMapWidth = screenWidth*shadowMapRatio
     shadowMapHeight = screenHeight*shadowMapRatio
     if (depthTextureId == -1) { //first time initialization
@@ -44,17 +44,6 @@ object Renderer {
       glEnable(GL_TEXTURE_RECTANGLE)
       depthTextureId = glGenTextures()
       glBindTexture(GL_TEXTURE_RECTANGLE, depthTextureId)
-
-      // TODO: Use GL_LINEAR for PCF ?
-/*      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-      // Remove artefact on the edges of the shadowmap
-      glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-      glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE)*/
-
       //FBO color tex
       colorTextureId = glGenTextures()
 
@@ -75,9 +64,6 @@ object Renderer {
 
     glBindFramebuffer(GL_FRAMEBUFFER, fboId)
 
-    //We won't bind a color texture to the fbo
-    /*glDrawBuffer(GL_NONE)
-    glReadBuffer(GL_NONE)*/
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_RECTANGLE, depthTextureId, 0)
 
@@ -89,15 +75,24 @@ object Renderer {
     //bind window-system framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0)
     checkGLError("Framebuffer initialization")
-    glEnable(GL_TEXTURE_2D)
+    glEnable(GL_TEXTURE_2D)*/
+    if (fbo == null) {
+     fbo = new Framebuffer(screenWidth, screenHeight)
+      fbo.createColorAttachment()
+      fbo.createDepthAttachment()
+    }
   }
 
   def bindFBO () { 
     //TODO: Is it necessary to set viewport if shadow map width != window width
     //glViewport(0, 0, shadowMapWidth, shadowMapHeight)
-    glBindFramebuffer(GL_FRAMEBUFFER, fboId)
+    //glBindFramebuffer(GL_FRAMEBUFFER, fboId)
+    fbo.startCapturing()
   }
-  def unbindFBO() = glBindFramebuffer(GL_FRAMEBUFFER, 0)
+  def unbindFBO() {
+    fbo.stopCapturing()
+    //= glBindFramebuffer(GL_FRAMEBUFFER, 0)
+  }
 
   def saveMatrices () {
     glMatrixMode(GL_PROJECTION)
