@@ -3,8 +3,10 @@ package md5viewer
 import org.lwjgl.input.Keyboard
 import org.lwjgl.opengl.GL11._
 import org.lwjgl.opengl.GL13._
+import org.lwjgl.opengl.GL31._
 import org.lwjgl._
 import org.lwjgl.util.glu.GLU._
+import org.lwjgl.opengl.ARBFramebufferObject._
 
 
 import utils._
@@ -154,6 +156,7 @@ object Main extends FrameListener {
   def render () {
     Renderer.saveMatrices()
     Renderer.bindFBO() 
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
     gluPerspective(45.0f, 1.0f, 1.0f, 1000.0f)
@@ -184,6 +187,7 @@ object Main extends FrameListener {
     //model.drawNormals()
     light.draw()
 
+    //Draw shadow map overlay in corner
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
     glOrtho(0, 640, 480, 0, 0, 1)
@@ -194,32 +198,31 @@ object Main extends FrameListener {
     glDisableClientState(GL_TEXTURE_COORD_ARRAY)
     glDisableClientState(GL_NORMAL_ARRAY)
     glActiveTexture(GL_TEXTURE0)
-    glEnable(GL_TEXTURE_2D)
+    glEnable(GL_TEXTURE_RECTANGLE)
     //model.meshes(0).colorTex.bind()
     //TODO: should probably write a shader to draw depth texture in a meaningfull way
     //glBindTexture(GL_TEXTURE_2D, Renderer.depthTextureId)
-    glBindTexture(GL_TEXTURE_2D, Renderer.colorTextureId)
-    glDisable(GL_CULL_FACE)
+    glBindTexture(GL_TEXTURE_RECTANGLE, Renderer.colorTextureId)
 
-    depthProgram.bind()
-    depthProgram.setSamplerUnit("shadowMap", 0)
+    /*depthProgram.bind()
+    depthProgram.setSamplerUnit("shadowMap", 0)*/
     glColor4f(1,1,1,1)
     glBegin(GL_QUADS)
       glVertex2i(540,380)
-      glTexCoord2f(0,0)
+      glTexCoord2f(Renderer.shadowMapWidth,Renderer.shadowMapHeight)
 
       glVertex2i(640,380)
-      glTexCoord2f(1,0)
+      glTexCoord2f(Renderer.shadowMapWidth,0)
 
       glVertex2i(640,480)
-      glTexCoord2f(1,1)
+      glTexCoord2f(0,0)
 
       glVertex2i(540,480)
-      glTexCoord2f(0,1)
+      glTexCoord2f(0,Renderer.shadowMapHeight)
     glEnd()
-    depthProgram.unbind()
+    //depthProgram.unbind()
 
-    glDisable(GL_TEXTURE_2D)
+    glDisable(GL_TEXTURE_RECTANGLE)
     glEnable(GL_CULL_FACE)
   }
 
