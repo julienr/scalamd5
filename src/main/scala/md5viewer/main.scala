@@ -24,6 +24,8 @@ object Main extends FrameListener {
   var glProgram : GLSLProgram = null
   var depthProgram : GLSLProgram = null
 
+  var shadowFBO : Framebuffer = null
+
   //point light position
   class PointLight {
     val rotCenter = Vector3(0,90,0)
@@ -98,7 +100,7 @@ object Main extends FrameListener {
       Console.println("Usage : <md5mesh directory>")
       return
     }
-    Kernel.initialize(args)
+    Kernel.initialize(args, 800, 600)
     Renderer.registerCamera(camera)
     camera.setPosition(Vector3(-40,106,128))
     camera.setPitch(-0.39f)
@@ -112,6 +114,11 @@ object Main extends FrameListener {
         Console.printf("camera rotation (pitch=%f, heading=%f, roll=%f)\n", camera.getPitch(), camera.getHeading(), camera.getRoll())
         Console.println("camera position : " + camera.getPosition)
     })
+
+    //Initialize framebuffer object for shadow map
+    shadowFBO = new Framebuffer(800, 600)
+    shadowFBO.createColorAttachment()
+    shadowFBO.createDepthAttachment()
 
     //Load shaders
     Renderer.checkGLError("Before shaders")
@@ -151,12 +158,9 @@ object Main extends FrameListener {
     Kernel.mainLoop(Unit => this )
   }
 
-
   @Override
   def render () {
-    Renderer.saveMatrices()
-    Renderer.bindFBO() 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+    shadowFBO.startCapturing()
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
     gluPerspective(45.0f, 1.0f, 1.0f, 1000.0f)
@@ -166,9 +170,7 @@ object Main extends FrameListener {
               light.lookAt.z, light.lookAt.y, light.lookAt.z,
               0,1,0)
     model.glentity.draw(null)
-    Renderer.unbindFBO()
-    Renderer.restoreMatrices()
-
+    shadowFBO.stopCapturing()
 
     //Normal rendering
     Renderer.setCameraTransform(camera)
@@ -202,23 +204,23 @@ object Main extends FrameListener {
     //model.meshes(0).colorTex.bind()
     //TODO: should probably write a shader to draw depth texture in a meaningfull way
     //glBindTexture(GL_TEXTURE_2D, Renderer.depthTextureId)
-    glBindTexture(GL_TEXTURE_RECTANGLE, Renderer.colorTextureId)
+    glBindTexture(GL_TEXTURE_RECTANGLE, shadowFBO.colorTex)
 
     /*depthProgram.bind()
     depthProgram.setSamplerUnit("shadowMap", 0)*/
     glColor4f(1,1,1,1)
     glBegin(GL_QUADS)
       glVertex2i(540,380)
-      glTexCoord2f(Renderer.shadowMapWidth,Renderer.shadowMapHeight)
+      glTexCoord2f(shadowFBO.width,shadowFBO.height)
 
       glVertex2i(640,380)
-      glTexCoord2f(Renderer.shadowMapWidth,0)
+      glTexCoord2f(shadowFBO.width,0)
 
       glVertex2i(640,480)
       glTexCoord2f(0,0)
 
       glVertex2i(540,480)
-      glTexCoord2f(0,Renderer.shadowMapHeight)
+      glTexCoord2f(0,shadowFBO.height)
     glEnd()
     //depthProgram.unbind()
 

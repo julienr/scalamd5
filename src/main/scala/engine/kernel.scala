@@ -21,12 +21,14 @@ trait FrameListener {
 object Kernel {
   var loop = true
 
-  val width = 800 
-  val height = 600
+  var width: Int = 0
+  var height: Int = 0
 
   val timer = new Timer
 
-  def initialize (args: Array[String]) {
+  def initialize (args: Array[String], width: Int, height: Int) {
+    this.width = width
+    this.height = height
     val caption = "Scalissor !";
     try {
       Display.setDisplayMode(new DisplayMode(width, height))

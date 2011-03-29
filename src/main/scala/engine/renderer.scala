@@ -12,14 +12,6 @@ object Renderer {
 
   val cameras = new HashSet[Camera]()
 
-  var fbo: Framebuffer = null
-
-  def colorTextureId : Int = fbo.colorTex
-  def depthTextureId : Int = fbo.depthTex
-
-  def shadowMapWidth = fbo.width
-  def shadowMapHeight = fbo.height
-
   def initialize (w: Int, h: Int) {
     //initialization code
     GL11.glClearColor(0.2f, 0.2f, 0.2f, 1.0f)
@@ -28,70 +20,15 @@ object Renderer {
     GL11.glEnable(GL11.GL_CULL_FACE)
     GL11.glCullFace(GL11.GL_BACK)
     GL11.glFrontFace(GL11.GL_CW)
-/*    GL11.glEnable(GL11.GL_BLEND)
-    GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA)*/
     resizeWindow(w,h)
   }
 
-  import org.lwjgl.opengl.GL31._
-  private def initializeFBO (screenWidth: Int, screenHeight: Int) {
-    /*val shadowMapRatio = 1
-    shadowMapWidth = screenWidth*shadowMapRatio
-    shadowMapHeight = screenHeight*shadowMapRatio
-    if (depthTextureId == -1) { //first time initialization
-      Console.println("First time FBO initialization")
-      //FBO depth tex
-      glEnable(GL_TEXTURE_RECTANGLE)
-      depthTextureId = glGenTextures()
-      glBindTexture(GL_TEXTURE_RECTANGLE, depthTextureId)
-      //FBO color tex
-      colorTextureId = glGenTextures()
-
-      //FBO
-      fboId = glGenFramebuffers();
-    }
-
-    Console.println("shadow width/height : ("+shadowMapWidth+", "+shadowMapHeight+")")
-
-    glBindTexture(GL_TEXTURE_RECTANGLE, depthTextureId)
-	  glTexImage2D( GL_TEXTURE_RECTANGLE, 0, GL_DEPTH_COMPONENT, shadowMapWidth, shadowMapHeight, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, null.asInstanceOf[java.nio.IntBuffer]);
-
-
-    glBindTexture(GL_TEXTURE_RECTANGLE, colorTextureId)
-    glTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGBA, shadowMapWidth, shadowMapHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, null.asInstanceOf[java.nio.IntBuffer])
-
-	  glBindTexture(GL_TEXTURE_RECTANGLE, 0);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, fboId)
-
-
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_RECTANGLE, depthTextureId, 0)
-
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE, colorTextureId, 0)
-    val status = glCheckFramebufferStatus(GL_FRAMEBUFFER)
-    if (status != GL_FRAMEBUFFER_COMPLETE)
-      Console.println("Error initializing framebuffer")
-
-    //bind window-system framebuffer
-    glBindFramebuffer(GL_FRAMEBUFFER, 0)
-    checkGLError("Framebuffer initialization")
-    glEnable(GL_TEXTURE_2D)*/
-    if (fbo == null) {
-     fbo = new Framebuffer(screenWidth, screenHeight)
-      fbo.createColorAttachment()
-      fbo.createDepthAttachment()
-    }
+  def saveViewport () {
+    glPushAttrib(GL_VIEWPORT_BIT)
   }
 
-  def bindFBO () { 
-    //TODO: Is it necessary to set viewport if shadow map width != window width
-    //glViewport(0, 0, shadowMapWidth, shadowMapHeight)
-    //glBindFramebuffer(GL_FRAMEBUFFER, fboId)
-    fbo.startCapturing()
-  }
-  def unbindFBO() {
-    fbo.stopCapturing()
-    //= glBindFramebuffer(GL_FRAMEBUFFER, 0)
+  def restoreViewport () {
+    glPopAttrib()
   }
 
   def saveMatrices () {
@@ -126,8 +63,6 @@ object Renderer {
     realWidth = w
     realHeight = h
     GL11.glViewport(0, 0, w, h)
-
-    initializeFBO(w,h)
   }
 
   def registerCamera (c: Camera) = cameras.add(c)
@@ -138,38 +73,6 @@ object Renderer {
     val err = GL11.glGetError()
     if (err != 0)
       Console.println("GL Error ("+diagString+") : " + GLU.gluErrorString(err))
-  }
-
-  def drawPyramid () {
-    GL11.glBegin( GL11.GL_TRIANGLES );             
-    GL11.glColor3f(   1.0f,  0.0f,  0.0f ); 
-    GL11.glVertex3f(  0.0f,  1.0f,  0.0f ); 
-    GL11.glColor3f(   0.0f,  1.0f,  0.0f ); 
-    GL11.glVertex3f( -1.0f, -1.0f,  1.0f ); 
-    GL11.glColor3f(   0.0f,  0.0f,  1.0f ); 
-    GL11.glVertex3f(  1.0f, -1.0f,  1.0f ); 
-
-    GL11.glColor3f(   1.0f,  0.0f,  0.0f ); 
-    GL11.glVertex3f(  0.0f,  1.0f,  0.0f ); 
-    GL11.glColor3f(   0.0f,  0.0f,  1.0f ); 
-    GL11.glVertex3f(  1.0f, -1.0f,  1.0f ); 
-    GL11.glColor3f(   0.0f,  1.0f,  0.0f ); 
-    GL11.glVertex3f(  1.0f, -1.0f, -1.0f ); 
-
-    GL11.glColor3f(   1.0f,  0.0f,  0.0f ); 
-    GL11.glVertex3f(  0.0f,  1.0f,  0.0f ); 
-    GL11.glColor3f(   0.0f,  1.0f,  0.0f ); 
-    GL11.glVertex3f(  1.0f, -1.0f, -1.0f ); 
-    GL11.glColor3f(   0.0f,  0.0f,  1.0f ); 
-    GL11.glVertex3f( -1.0f, -1.0f, -1.0f ); 
-
-    GL11.glColor3f(   1.0f,  0.0f,  0.0f ); 
-    GL11.glVertex3f(  0.0f,  1.0f,  0.0f ); 
-    GL11.glColor3f(   0.0f,  0.0f,  1.0f ); 
-    GL11.glVertex3f( -1.0f, -1.0f, -1.0f ); 
-    GL11.glColor3f(   0.0f,  1.0f,  0.0f ); 
-    GL11.glVertex3f( -1.0f, -1.0f,  1.0f ); 
-    GL11.glEnd( );                            
   }
 
   def setCameraTransform (cam: Camera) {
@@ -194,7 +97,7 @@ object Renderer {
     //Console.println("aspectRatio : " + aspectRatio)
     GLU.gluPerspective(cam.hFov/2.0f, aspectRatio, cam.zNear, cam.zFar)
     
-    //FIXME: replace gluPerspective by our own perspective function
+    //TODO: replace gluPerspective by our own perspective function
 /*    val nRect = cam.getNearRect
     checkGLError("updateGLProj:before")   
     Console.println("nRect : " + nRect.xMin + ", "+nRect.xMax+", "+nRect.yMin+","+nRect.yMax+","+cam.zNear+","+cam.zFar)

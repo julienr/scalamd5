@@ -44,19 +44,19 @@ class Framebuffer (val width: Int, val height: Int) {
   //Save and clear the current modelview/projection matrices, clear the framebuffer and bind it for rendering
   def startCapturing () {
     Renderer.saveMatrices()
+    Renderer.saveViewport()
+    glViewport(0,0, width, height)
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
     bind()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-    //TODO: Is it necessary to set viewport if shadow map width != window width ? (And restore in stop capturing)
-    //glViewport(0, 0, shadowMapWidth, shadowMapHeight)
-
   }
 
   def stopCapturing () {
     unbind()
+    Renderer.restoreViewport()
     Renderer.restoreMatrices()
   }
 
