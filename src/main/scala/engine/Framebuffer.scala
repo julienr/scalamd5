@@ -4,7 +4,6 @@ import org.lwjgl.opengl.GL11._
 import org.lwjgl.opengl.GL13._
 import org.lwjgl.opengl.GL14._
 import org.lwjgl.opengl.ARBFramebufferObject._
-import org.lwjgl.opengl.GL31._
 
 //Type of attachments supported by a framebuffer
 object Attachment extends Enumeration {
@@ -18,40 +17,41 @@ object Attachment extends Enumeration {
 class Framebuffer (val width: Int, val height: Int, att: List[Attachment.Attachment]) {
   import Attachment._
 
-  //The texture format used for framebuffer textures
-  private val texTarget = GL_TEXTURE_2D
-
   private val fbo = glGenFramebuffers()
+  glBindFramebuffer(GL_FRAMEBUFFER, fbo)
+
+  //We can disable draw buffer if we only have depth attachment
+  val hasColor = att.contains(Color)
+  if (!hasColor) {
+    glDrawBuffer(GL_NONE)
+    glReadBuffer(GL_NONE)
+  }
 
   //map attachments types to their opengl tex id
   private val attachments: Map[Attachment, Int] = {
-    att.map((a: Attachment) => a match {
+     att.map((a: Attachment) => a match {
         case Depth => (a, createDepthAttachment())
         case Color => (a, createColorAttachment())
     }).toMap[Attachment, Int]
   }
+  checkStatus("FBO initialization")
+  glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
   override def finalize () {
     glDeleteFramebuffers(fbo)
   }
 
   private def createColorAttachment () : Int = { 
-    val colorTex = genRectTexture(GL_RGBA)
+    val colorTex = genRectTexture(GL_RGBA, GL_RGBA)
 
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo)
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texTarget, colorTex, 0)
-    checkStatus("color attachment creation")
-    glBindFramebuffer(GL_FRAMEBUFFER, 0)
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTex, 0)
     return colorTex
   }
 
   private def createDepthAttachment () : Int = {
-    val depthTex = genRectTexture(GL_DEPTH_COMPONENT)
+    val depthTex = genRectTexture(GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT)
 
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo)
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texTarget, depthTex, 0)
-    checkStatus("depth attachment creation")
-    glBindFramebuffer(GL_FRAMEBUFFER, 0)
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTex, 0)
     return depthTex
   }
 
@@ -77,12 +77,16 @@ class Framebuffer (val width: Int, val height: Int, att: List[Attachment.Attachm
 
   //Bind the color/depth texture
   def bindAttachmentTex(att: Attachment) {
-    glEnable(texTarget)
-    glBindTexture(texTarget, attachments(att))
+    if (!attachments.contains(att)) {
+      glDisable(GL_TEXTURE_2D) 
+    } else {
+      glEnable(GL_TEXTURE_2D)
+      glBindTexture(GL_TEXTURE_2D, attachments(att))
+    }
   }
 
   def unbindTex () {
-    glDisable(texTarget)
+    glDisable(GL_TEXTURE_2D)
   }
 
   //Will draw the given attachment to a square on the screen (ASSUMES ortho projection has been set up)
@@ -132,23 +136,27 @@ class Framebuffer (val width: Int, val height: Int, att: List[Attachment.Attachm
     }
   }
 
-  private def genRectTexture(pixFormat: Int): Int = {
+  private def genRectTexture(intFormat: Int, pixFormat: Int): Int = {
     val id = glGenTextures()
-    glBindTexture(texTarget, id)
+    glBindTexture(GL_TEXTURE_2D, id)
+
+    glTexImage2D(GL_TEXTURE_2D, 0, intFormat, 
+                 width, height, 0, pixFormat, GL_UNSIGNED_INT, 
+                 null.asInstanceOf[java.nio.IntBuffer])
 
     //TODO: Use GL_LINEAR for PCF ?
-    glTexParameteri(texTarget, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(texTarget, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     // Remove artefact on the edges of the shadowmap
-    glTexParameterf(texTarget, GL_TEXTURE_WRAP_S, GL_CLAMP);
-    glTexParameterf(texTarget, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
     //TODO: Should we keep it ?
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE)
-    glTexImage2D(texTarget, 0, pixFormat, 
-                 width, height, 0, pixFormat, GL_UNSIGNED_BYTE, 
-                 null.asInstanceOf[java.nio.IntBuffer])
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE)
+	
+    glBindTexture(GL_TEXTURE_2D, 0);
+
     return id
   }
 }

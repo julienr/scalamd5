@@ -137,6 +137,7 @@ object Main extends FrameListener {
         """)
       val fs = new FragmentShader("""
         uniform sampler2D shadowMap;
+
         void main () {
           float depth = texture2D(shadowMap, gl_TexCoord[0].st).r;
           gl_FragColor = vec4(vec3(depth),1);
@@ -187,7 +188,7 @@ object Main extends FrameListener {
     //model.drawNormals()
     light.draw()
 
-    //Draw shadow map overlay in corner
+    //DEBUG: Draw shadow map overlay in corner
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
     glOrtho(0, 640, 480, 0, 0, 1)
@@ -195,10 +196,10 @@ object Main extends FrameListener {
     glLoadIdentity()
 
     shadowFBO.drawToRect(Attachment.Color, new Rectangle(540,380,640,480))
-    /*depthProgram.bind()
-    depthProgram.setSamplerUnit("shadowMap", 0)*/
+    depthProgram.bind()
+    depthProgram.setSamplerUnit("shadowMap", 0)
     shadowFBO.drawToRect(Attachment.Depth, new Rectangle(540,280,640,380))
-    //depthProgram.unbind()
+    depthProgram.unbind()
    }
 
   @Override
