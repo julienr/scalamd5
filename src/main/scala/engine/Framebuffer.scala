@@ -1,44 +1,58 @@
 package engine
+import utils._
 import org.lwjgl.opengl.GL11._
+import org.lwjgl.opengl.GL13._
 import org.lwjgl.opengl.GL14._
 import org.lwjgl.opengl.ARBFramebufferObject._
 import org.lwjgl.opengl.GL31._
 
+//Type of attachments supported by a framebuffer
+object Attachment extends Enumeration {
+  type Attachment = Value
+  val Depth, Color = Value
+}
+
 //Expose the functionnality of an OpenGL framebuffer
-//At least one attachment (color or depth) should be created
+//Also specify the list of attachment types that should be created
 //TODO: Resize function ?
-class Framebuffer (val width: Int, val height: Int) {
-  var depthTex: Int = -1
-  var colorTex: Int = -1
+class Framebuffer (val width: Int, val height: Int, att: List[Attachment.Attachment]) {
+  import Attachment._
+
+  //The texture format used for framebuffer textures
+  private val texFormat = GL_TEXTURE_2D
+
   private val fbo = glGenFramebuffers()
+
+  //map attachments types to their opengl tex id
+  private val attachments: Map[Attachment, Int] = {
+    att.map((a: Attachment) => a match {
+        case Depth => (a, createDepthAttachment())
+        case Color => (a, createColorAttachment())
+    }).toMap[Attachment, Int]
+  }
 
   override def finalize () {
     glDeleteFramebuffers(fbo)
   }
 
-  def createColorAttachment () { 
-    if (colorTex != -1) {
-      Console.println("Color attachment already exists")
-      return
-    }
-    colorTex = genRectTexture(GL_RGBA)
+  private def createColorAttachment () : Int = { 
+    val colorTex = genRectTexture(GL_RGBA)
 
     glBindFramebuffer(GL_FRAMEBUFFER, fbo)
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE, colorTex, 0)
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texFormat, colorTex, 0)
     checkStatus("color attachment creation")
     glBindFramebuffer(GL_FRAMEBUFFER, 0)
+    return colorTex
   }
 
-  def createDepthAttachment () {
-    if (depthTex != -1) {
-      Console.println("Depth attachment already exists")
-    }
-    depthTex = genRectTexture(GL_DEPTH_COMPONENT)
+  private def createDepthAttachment () : Int = {
+    val depthTex = genRectTexture(GL_DEPTH_COMPONENT)
 
     glBindFramebuffer(GL_FRAMEBUFFER, fbo)
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_RECTANGLE, depthTex, 0)
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texFormat, depthTex, 0)
     checkStatus("depth attachment creation")
     glBindFramebuffer(GL_FRAMEBUFFER, 0)
+    return depthTex
   }
 
   //Save and clear the current modelview/projection matrices, clear the framebuffer and bind it for rendering
@@ -50,23 +64,65 @@ class Framebuffer (val width: Int, val height: Int) {
     glLoadIdentity()
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
-    bind()
+
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
   }
 
   def stopCapturing () {
-    unbind()
+    glBindFramebuffer(GL_FRAMEBUFFER, 0)
     Renderer.restoreViewport()
     Renderer.restoreMatrices()
   }
 
-  def bind() {
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo)
+  //Bind the color/depth texture
+  def bindAttachmentTex(att: Attachment) {
+    glEnable(texFormat)
+    glBindTexture(texFormat, attachments(att))
   }
 
-  def unbind() {
-    glBindFramebuffer(GL_FRAMEBUFFER, 0)
+  def unbindTex () {
+    glDisable(texFormat)
   }
+
+  //Will draw the given attachment to a square on the screen (ASSUMES ortho projection has been set up)
+  def drawToRect (att: Attachment, rect: Rectangle) {
+    glDisableClientState(GL_VERTEX_ARRAY)
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY)
+    glDisableClientState(GL_NORMAL_ARRAY)
+    glActiveTexture(GL_TEXTURE0)
+    bindAttachmentTex(att)
+
+    glColor4f(1,1,1,1)
+    glBegin(GL_QUADS)
+    //This would be useful if we used GL_TEXTURE_RECTANGLE
+    /*      glVertex2i(540,380)
+    glTexCoord2f(shadowFBO.width,shadowFBO.height)
+
+    glVertex2i(640,380)
+    glTexCoord2f(shadowFBO.width,0)
+
+    glVertex2i(640,480)
+    glTexCoord2f(0,0)
+
+    glVertex2i(540,480)
+    glTexCoord2f(0,shadowFBO.height)*/
+    glVertex2i(rect.botx, rect.boty)
+    glTexCoord2f(1.0f,1.0f)
+
+    glVertex2i(rect.topx, rect.boty)
+    glTexCoord2f(1.0f,0)
+
+    glVertex2i(rect.topx, rect.topy)
+    glTexCoord2f(0,0)
+
+    glVertex2i(rect.botx, rect.topy)
+    glTexCoord2f(0,1.0f)
+
+    glEnd()
+    unbindTex()
+  }
+
 
   private def checkStatus (diagnostic: String) {
     val status = glCheckFramebufferStatus(GL_FRAMEBUFFER)
@@ -78,18 +134,18 @@ class Framebuffer (val width: Int, val height: Int) {
 
   private def genRectTexture(pixFormat: Int): Int = {
     val id = glGenTextures()
-    glBindTexture(GL_TEXTURE_RECTANGLE, id)
+    glBindTexture(texFormat, id)
 
     //TODO: Use GL_LINEAR for PCF ?
-    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(texFormat, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(texFormat, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     // Remove artefact on the edges of the shadowmap
-    glTexParameterf(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_S, GL_CLAMP);
-    glTexParameterf(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParameterf(texFormat, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameterf(texFormat, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
     //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE)
-    glTexImage2D(GL_TEXTURE_RECTANGLE, 0, pixFormat, 
+    glTexImage2D(texFormat, 0, pixFormat, 
                  width, height, 0, pixFormat, GL_UNSIGNED_BYTE, 
                  null.asInstanceOf[java.nio.IntBuffer])
     return id

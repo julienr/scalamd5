@@ -3,7 +3,6 @@ package md5viewer
 import org.lwjgl.input.Keyboard
 import org.lwjgl.opengl.GL11._
 import org.lwjgl.opengl.GL13._
-import org.lwjgl.opengl.GL31._
 import org.lwjgl._
 import org.lwjgl.util.glu.GLU._
 import org.lwjgl.opengl.ARBFramebufferObject._
@@ -116,9 +115,7 @@ object Main extends FrameListener {
     })
 
     //Initialize framebuffer object for shadow map
-    shadowFBO = new Framebuffer(800, 600)
-    shadowFBO.createColorAttachment()
-    shadowFBO.createDepthAttachment()
+    shadowFBO = new Framebuffer(800, 600, List(Attachment.Color, Attachment.Depth))
 
     //Load shaders
     Renderer.checkGLError("Before shaders")
@@ -196,37 +193,11 @@ object Main extends FrameListener {
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
 
-    glDisableClientState(GL_VERTEX_ARRAY)
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY)
-    glDisableClientState(GL_NORMAL_ARRAY)
-    glActiveTexture(GL_TEXTURE0)
-    glEnable(GL_TEXTURE_RECTANGLE)
-    //model.meshes(0).colorTex.bind()
-    //TODO: should probably write a shader to draw depth texture in a meaningfull way
-    //glBindTexture(GL_TEXTURE_2D, Renderer.depthTextureId)
-    glBindTexture(GL_TEXTURE_RECTANGLE, shadowFBO.colorTex)
-
     /*depthProgram.bind()
     depthProgram.setSamplerUnit("shadowMap", 0)*/
-    glColor4f(1,1,1,1)
-    glBegin(GL_QUADS)
-      glVertex2i(540,380)
-      glTexCoord2f(shadowFBO.width,shadowFBO.height)
-
-      glVertex2i(640,380)
-      glTexCoord2f(shadowFBO.width,0)
-
-      glVertex2i(640,480)
-      glTexCoord2f(0,0)
-
-      glVertex2i(540,480)
-      glTexCoord2f(0,shadowFBO.height)
-    glEnd()
-    //depthProgram.unbind()
-
-    glDisable(GL_TEXTURE_RECTANGLE)
-    glEnable(GL_CULL_FACE)
-  }
+    shadowFBO.drawToRect(Attachment.Color, new Rectangle(540,380,640,480))
+    depthProgram.unbind()
+   }
 
   @Override
   def move (elapsedTime: Float) {
