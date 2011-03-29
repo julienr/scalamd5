@@ -138,9 +138,9 @@ object Main extends FrameListener {
       val fs = new FragmentShader("""
         uniform sampler2D shadowMap;
         void main () {
-          /*float depth = texture2D(shadowMap, gl_TexCoord[0].st).r;
-          gl_FragColor = vec4(vec3(depth),1);*/
-          gl_FragColor = texture2D(shadowMap, gl_TexCoord[0].st);
+          float depth = texture2D(shadowMap, gl_TexCoord[0].st).r;
+          gl_FragColor = vec4(vec3(depth),1);
+          //gl_FragColor = texture2D(shadowMap, gl_TexCoord[0].st);
         }
         """)
       new GLSLProgram(vs, fs)
@@ -157,6 +157,7 @@ object Main extends FrameListener {
 
   @Override
   def render () {
+    //Light POV rendering
     shadowFBO.startCapturing()
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
@@ -193,10 +194,11 @@ object Main extends FrameListener {
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
 
+    shadowFBO.drawToRect(Attachment.Color, new Rectangle(540,380,640,480))
     /*depthProgram.bind()
     depthProgram.setSamplerUnit("shadowMap", 0)*/
-    shadowFBO.drawToRect(Attachment.Color, new Rectangle(540,380,640,480))
-    depthProgram.unbind()
+    shadowFBO.drawToRect(Attachment.Depth, new Rectangle(540,280,640,380))
+    //depthProgram.unbind()
    }
 
   @Override

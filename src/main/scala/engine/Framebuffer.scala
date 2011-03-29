@@ -19,7 +19,7 @@ class Framebuffer (val width: Int, val height: Int, att: List[Attachment.Attachm
   import Attachment._
 
   //The texture format used for framebuffer textures
-  private val texFormat = GL_TEXTURE_2D
+  private val texTarget = GL_TEXTURE_2D
 
   private val fbo = glGenFramebuffers()
 
@@ -39,7 +39,7 @@ class Framebuffer (val width: Int, val height: Int, att: List[Attachment.Attachm
     val colorTex = genRectTexture(GL_RGBA)
 
     glBindFramebuffer(GL_FRAMEBUFFER, fbo)
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texFormat, colorTex, 0)
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texTarget, colorTex, 0)
     checkStatus("color attachment creation")
     glBindFramebuffer(GL_FRAMEBUFFER, 0)
     return colorTex
@@ -49,7 +49,7 @@ class Framebuffer (val width: Int, val height: Int, att: List[Attachment.Attachm
     val depthTex = genRectTexture(GL_DEPTH_COMPONENT)
 
     glBindFramebuffer(GL_FRAMEBUFFER, fbo)
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texFormat, depthTex, 0)
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texTarget, depthTex, 0)
     checkStatus("depth attachment creation")
     glBindFramebuffer(GL_FRAMEBUFFER, 0)
     return depthTex
@@ -77,12 +77,12 @@ class Framebuffer (val width: Int, val height: Int, att: List[Attachment.Attachm
 
   //Bind the color/depth texture
   def bindAttachmentTex(att: Attachment) {
-    glEnable(texFormat)
-    glBindTexture(texFormat, attachments(att))
+    glEnable(texTarget)
+    glBindTexture(texTarget, attachments(att))
   }
 
   def unbindTex () {
-    glDisable(texFormat)
+    glDisable(texTarget)
   }
 
   //Will draw the given attachment to a square on the screen (ASSUMES ortho projection has been set up)
@@ -92,7 +92,7 @@ class Framebuffer (val width: Int, val height: Int, att: List[Attachment.Attachm
     glDisableClientState(GL_NORMAL_ARRAY)
     glActiveTexture(GL_TEXTURE0)
     bindAttachmentTex(att)
-
+    
     glColor4f(1,1,1,1)
     glBegin(GL_QUADS)
     //This would be useful if we used GL_TEXTURE_RECTANGLE
@@ -107,16 +107,16 @@ class Framebuffer (val width: Int, val height: Int, att: List[Attachment.Attachm
 
     glVertex2i(540,480)
     glTexCoord2f(0,shadowFBO.height)*/
-    glVertex2i(rect.botx, rect.boty)
+    glVertex2f(rect.xMin, rect.yMin)
     glTexCoord2f(1.0f,1.0f)
 
-    glVertex2i(rect.topx, rect.boty)
+    glVertex2f(rect.xMax, rect.yMin)
     glTexCoord2f(1.0f,0)
 
-    glVertex2i(rect.topx, rect.topy)
+    glVertex2f(rect.xMax, rect.yMax)
     glTexCoord2f(0,0)
 
-    glVertex2i(rect.botx, rect.topy)
+    glVertex2f(rect.xMin, rect.yMax)
     glTexCoord2f(0,1.0f)
 
     glEnd()
@@ -134,18 +134,19 @@ class Framebuffer (val width: Int, val height: Int, att: List[Attachment.Attachm
 
   private def genRectTexture(pixFormat: Int): Int = {
     val id = glGenTextures()
-    glBindTexture(texFormat, id)
+    glBindTexture(texTarget, id)
 
     //TODO: Use GL_LINEAR for PCF ?
-    glTexParameteri(texFormat, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(texFormat, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(texTarget, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(texTarget, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     // Remove artefact on the edges of the shadowmap
-    glTexParameterf(texFormat, GL_TEXTURE_WRAP_S, GL_CLAMP);
-    glTexParameterf(texFormat, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParameterf(texTarget, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameterf(texTarget, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE)
-    glTexImage2D(texFormat, 0, pixFormat, 
+    //TODO: Should we keep it ?
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE)
+    glTexImage2D(texTarget, 0, pixFormat, 
                  width, height, 0, pixFormat, GL_UNSIGNED_BYTE, 
                  null.asInstanceOf[java.nio.IntBuffer])
     return id

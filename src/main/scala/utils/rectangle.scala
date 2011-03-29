@@ -1,8 +1,4 @@
 package utils
 
-class Rectangle (axMin: Float, ayMin: Float, axMax: Float, ayMax: Float) {
-  val xMin = axMin
-  val yMin = ayMin
-  val xMax = axMax
-  val yMax = ayMax
+class Rectangle (val xMin: Float, val yMin: Float, val xMax: Float, val yMax: Float) {
 }
