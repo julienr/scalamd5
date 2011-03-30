@@ -6,9 +6,6 @@ import org.lwjgl.opengl.GL11._
 import org.lwjgl.opengl.GL13._
 import org.lwjgl._
 import engine._
-import org.newdawn.slick.opengl._
-import java.io.FileInputStream
-import java.io.IOException
 
 
 //Model stuff
@@ -56,9 +53,9 @@ protected class Weight(val jointIndex: Int, val bias: Float, val w: Vector3) {
 
 protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tri], val weights: List[Weight]) {
   val shader = "models/".r.replaceAllIn(rawShader, "data/textures/")
-  val colorTex = loadTex(shader+"_d.tga", GL_LINEAR)
-  val localTex = loadTex(shader+"_local.tga", GL_LINEAR)
-  val specularTex = loadTex(shader+"_s.tga", GL_LINEAR)
+  val colorTex = TexUtils.loadTex(shader+"_d.tga", GL_LINEAR)
+  val localTex = TexUtils.loadTex(shader+"_local.tga", GL_LINEAR)
+  val specularTex = TexUtils.loadTex(shader+"_s.tga", GL_LINEAR)
 
   val glmesh = new GLMesh(verts.length, tris.length)
   glmesh.addTex(GL_TEXTURE0, colorTex, "colorTex", 0)
@@ -67,15 +64,6 @@ protected class Mesh(rawShader: String, val verts: List[Vert], val tris: List[Tr
 
   fillIndicesBuffer()
   fillTexCoordsBuffer()
-
-  def loadTex (file: String, filter: Int) = {
-    try {
-      Console.println("loading : " + file)
-      TextureLoader.getTexture("TGA", new FileInputStream(file), filter)
-    } catch {
-      case ioe: IOException => Console.println(ioe); null
-    }
-  }
 
   def fillIndicesBuffer () {
     val buff = glmesh.indicesBuffer

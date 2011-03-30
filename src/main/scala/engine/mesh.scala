@@ -16,6 +16,7 @@ import collection.mutable.HashSet
 class GLEntity {
   var position = Vector3(0,0,0)
   var rotation = Quaternion(0, Vector3(0,1,0))
+  var scale = Vector3(1,1,1)
 
   private val meshes = new HashSet[GLMesh]
 
@@ -25,6 +26,7 @@ class GLEntity {
     glPushMatrix()
     glTranslatef(position.x, position.y, position.z)
     Renderer.applyRotation(rotation)
+    glScalef(scale.x, scale.y, scale.z)
 
    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
     glColor4f(1,1,1,1)

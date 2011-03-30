@@ -5,6 +5,7 @@
 uniform sampler2D colorTex;
 uniform sampler2D localTex;
 uniform sampler2D specularTex;
+uniform sampler2D shadowMap;
 
 //x = constant attenuation
 //y = linear attenuation
@@ -56,4 +57,6 @@ void main () {
     //gl_FragColor = vec4(vec3(att),1);
     }
   }
+
+//  gl_FragColor = vec4(normal,1);
 }

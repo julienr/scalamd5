@@ -18,6 +18,7 @@ object Main extends FrameListener {
   var keyboardController = new CameraFPSKeyboardController(camera)
 
   var model : MD5Model = null
+  var floor : Floor = null
   var anim : MD5Anim = null
 
   var glProgram : GLSLProgram = null
@@ -140,6 +141,8 @@ object Main extends FrameListener {
       Console.println("Anim loaded")
     }
 
+    floor = new Floor(100)
+
     Kernel.mainLoop(Unit => this )
   }
 
@@ -168,7 +171,12 @@ object Main extends FrameListener {
     glProgram.setUniform("attVector", Vector3(1.0f, 0, 0));
     glProgram.setUniform("spotCosCutoff", math.cos(0.3).toFloat)
     glProgram.setUniform("spotExp", 50)
+    /*glActiveTexture(GL_TEXTURE3)
+    shadowFBO.bindAttachmentTex(Attachment.Depth)
+    glProgram.setSamplerUnit("shadowMap", 3)*/
 
+//    drawFloor(new Rectangle(-50,-50,50,50))
+    floor.glentity.draw(glProgram)
     model.glentity.draw(glProgram)
     glProgram.unbind()
 
