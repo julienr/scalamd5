@@ -28,7 +28,7 @@ class Camera () {
   //var vFov : Float = 0.0f
   var aspectRatio : Float = 4.0f/3.0f
   var zNear : Float = 0.1f //zNear MUST be positive
-  var zFar : Float = 1000.0f //zFar MUST be positive
+  var zFar : Float = 500.0f //zFar MUST be positive
   var e : Float = 0.0f //focal length
   
   var id : Int = CamID.getNewID

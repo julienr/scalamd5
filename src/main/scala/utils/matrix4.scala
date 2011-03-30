@@ -2,6 +2,19 @@ package utils
 import java.nio.FloatBuffer
 import org.lwjgl._
 
+object Matrix4 {
+  //values given in row-major order
+  def apply (values: Float*) : Matrix4 = {
+    val m = new Matrix4
+    for (row <- 0 until 4) {
+      for (col <- 0 until 4) {
+        m(row,col) = values(row*4+col)
+      }
+    }
+    m
+  }
+}
+
 //A matrix backed by a FloatBuffer, to be used with OpenGL
 class Matrix4 {
   //stores data in column-major order

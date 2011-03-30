@@ -117,6 +117,8 @@ class GLMesh (numVerts: Int, numTris: Int) {
     glDisable(GL_TEXTURE_2D)
     glActiveTexture(GL_TEXTURE1)
     glDisable(GL_TEXTURE_2D)
+    glActiveTexture(GL_TEXTURE2)
+    glDisable(GL_TEXTURE_2D)
 
     //TODO: We ASSUME we have a 'tangent' attrib
     val tangentBuffer = getAttribBuffer("tangent")

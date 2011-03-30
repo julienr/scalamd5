@@ -9,9 +9,14 @@ varying vec3 eyeLightVec;
 varying vec3 eyeVec;
 varying float distToLight;
 
+varying vec4 lsVert;
+
 void main () {
   gl_Position = gl_ModelViewProjectionMatrix*gl_Vertex;
   gl_TexCoord[0] = gl_MultiTexCoord0;
+
+  //calculate light-space vertex
+  lsVert = gl_TextureMatrix[7]*gl_Vertex;
 
   //Eye space -> Tangent space transformation matrix
   vec3 n = normalize(gl_NormalMatrix*gl_Normal);

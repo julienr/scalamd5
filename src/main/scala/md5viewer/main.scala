@@ -152,12 +152,20 @@ object Main extends FrameListener {
     shadowFBO.startCapturing()
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
-    gluPerspective(45.0f, 1.0f, 1.0f, 500.0f)
+    gluPerspective(45.0f, 1.0f, 1.0f, camera.zFar)
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
     gluLookAt(light.position.x, light.position.y, light.position.z,
               light.lookAt.z, light.lookAt.y, light.lookAt.z,
               0,1,0)
+
+    //save light modelview and projection
+    val lightModelview = BufferUtils.createFloatBuffer(16)
+    glGetFloat(GL_MODELVIEW_MATRIX, lightModelview)
+    val lightProjection = BufferUtils.createFloatBuffer(16)
+    glGetFloat(GL_PROJECTION_MATRIX, lightProjection)
+
+    //floor.glentity.draw(null)
     model.glentity.draw(null)
     shadowFBO.stopCapturing()
 
@@ -171,11 +179,29 @@ object Main extends FrameListener {
     glProgram.setUniform("attVector", Vector3(1.0f, 0, 0));
     glProgram.setUniform("spotCosCutoff", math.cos(0.3).toFloat)
     glProgram.setUniform("spotExp", 50)
-    /*glActiveTexture(GL_TEXTURE3)
+    
+    //Bind shadow map
+    glActiveTexture(GL_TEXTURE3)
     shadowFBO.bindAttachmentTex(Attachment.Depth)
-    glProgram.setSamplerUnit("shadowMap", 3)*/
+    glProgram.setSamplerUnit("shadowMap", 3)
 
-//    drawFloor(new Rectangle(-50,-50,50,50))
+    //Store the [world] -> [light view] matrix as the texture matrix of unit 7
+    //This bias is needed because proj*modelview*point will transform it to the [-1,1] unit cube and 
+    //our shadow map coords are in [0,1]
+    val bias = Matrix4(0.5f,0,0,0.5f,
+                       0,0.5f,0,0.5f,
+                       0,0,0.5f,0.5f,
+                       0,0,0,1.0f)
+
+    glActiveTexture(GL_TEXTURE7)
+    glMatrixMode(GL_TEXTURE)
+    glLoadIdentity()
+    glLoadMatrix(bias.getFloatBuffer())
+    glMultMatrix(lightProjection)
+    glMultMatrix(lightModelview)
+
+    glMatrixMode(GL_MODELVIEW)
+
     floor.glentity.draw(glProgram)
     model.glentity.draw(glProgram)
     glProgram.unbind()
