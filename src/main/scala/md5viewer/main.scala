@@ -60,10 +60,10 @@ object Main extends FrameListener {
     val rotCenter = Vector3(0,110,0)
     var rotAngle = 0.0
     var rotSpeed = 0.3
-    val rotRadius = 50
+    val rotRadius = 80
 
     var position = rotCenter
-    var lookAt = Vector3(0,0,0)
+    var lookAt = Vector3(0,50,0)
 
     def updatePos (elapsedS: Float) {
       position = rotCenter+Vector3(math.cos(rotAngle).toFloat, 0, math.sin(rotAngle).toFloat)*rotRadius
