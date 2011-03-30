@@ -129,21 +129,8 @@ object Main extends FrameListener {
 
     //Shaders to render the depth texture in a visible way (for DEBUG)
     depthProgram = {
-      val vs = new VertexShader("""
-        void main () {
-          gl_Position = ftransform();
-          gl_TexCoord[0] = gl_MultiTexCoord0;
-        }
-        """)
-      val fs = new FragmentShader("""
-        uniform sampler2D shadowMap;
-
-        void main () {
-          float depth = texture2D(shadowMap, gl_TexCoord[0].st).r;
-          gl_FragColor = vec4(vec3(depth),1);
-          //gl_FragColor = texture2D(shadowMap, gl_TexCoord[0].st);
-        }
-        """)
+      val vs = new VertexShader(io.Source.fromFile("data/shaders/default_vertex.glsl").mkString)
+      val fs = new FragmentShader(io.Source.fromFile("data/shaders/depth_visu_fragment.glsl").mkString)
       new GLSLProgram(vs, fs)
     }
 
@@ -162,7 +149,7 @@ object Main extends FrameListener {
     shadowFBO.startCapturing()
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
-    gluPerspective(45.0f, 1.0f, 1.0f, 1000.0f)
+    gluPerspective(45.0f, 1.0f, 1.0f, 500.0f)
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
     gluLookAt(light.position.x, light.position.y, light.position.z,
