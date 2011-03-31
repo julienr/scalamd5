@@ -173,7 +173,7 @@ object Main extends FrameListener {
 
     glProgram.bind()
     glProgram.setUniform("lightPos", camera.getRotation.getConjugate.rotate(light.position-camera.getPosition))
-    glProgram.setUniform("eyeSpotDir", camera.getRotation.getConjugate.rotate(light.lookAt-light.position-camera.getPosition))
+    glProgram.setUniform("eyeSpotDir", camera.getRotation.getConjugate.rotate(light.lookAt-light.position))
     glProgram.setUniform("attVector", Vector3(1.0f, 0, 0));
     glProgram.setUniform("spotCosCutoff", math.cos(0.3).toFloat)
     glProgram.setUniform("spotExp", 50)
