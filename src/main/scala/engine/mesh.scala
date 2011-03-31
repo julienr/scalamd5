@@ -28,6 +28,14 @@ class GLEntity {
     Renderer.applyRotation(rotation)
     glScalef(scale.x, scale.y, scale.z)
 
+    glActiveTexture(GL_TEXTURE7)
+    glMatrixMode(GL_TEXTURE)
+    glPushMatrix()
+    glTranslatef(position.x, position.y, position.z)
+    Renderer.applyRotation(rotation)
+    glScalef(scale.x, scale.y, scale.z)
+    glMatrixMode(GL_MODELVIEW)
+
    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
     glColor4f(1,1,1,1)
     glEnableClientState(GL_VERTEX_ARRAY)
@@ -42,6 +50,10 @@ class GLEntity {
     //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
 
     glPopMatrix()
+    glActiveTexture(GL_TEXTURE7)
+    glMatrixMode(GL_TEXTURE)
+    glPopMatrix()
+    glMatrixMode(GL_MODELVIEW)
   }
 
   def drawNormals () {

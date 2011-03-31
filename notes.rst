@@ -102,3 +102,10 @@ This WON'T WORK because the modelview matrix in the vertex shader will contain t
 to the current object being rendered. But our light position was in [world space] and not in [object space]. 
 The conclusion is we need to transform the light position by the modelview matrix BEFORE applying object-specific transformations to it.
 
+
+Shadow Maps
+-----------
+When generating the [world] -> [light] matrix (by saving GL_MODELVIEW and GL_PROJECTION when rendering from light POV), do NOT forget that each object also has local transformations (its location and rotation).
+
+Therefore, when rendering an object, all the matrix-related operations (glPushMAtrix, glTranslate, glRotate) should be done on the GL_MODELVIEW AND on the worldToLight matrix (usually the GL_TEXTURE matrix for GL_TEXTURE7)
+

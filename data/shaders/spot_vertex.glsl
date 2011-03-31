@@ -17,6 +17,7 @@ void main () {
 
   //calculate light-space vertex
   lsVert = gl_TextureMatrix[7]*gl_Vertex;
+  //gl_Position = lsVert;
 
   //Eye space -> Tangent space transformation matrix
   vec3 n = normalize(gl_NormalMatrix*gl_Normal);
