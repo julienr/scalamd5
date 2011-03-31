@@ -94,7 +94,7 @@ Now, a mistake I made was that I was just transferring the light position in [wo
   
   glProgram.setUniform("lightPos", light.position)
 
-And then, in the vertex shader :
+An the, in the vertex shader :
 
   vec3 viewLightPos = vec3(gl_ModelViewMatrix*lightPos); 
 
@@ -105,6 +105,9 @@ The conclusion is we need to transform the light position by the modelview matri
 
 Shadow Maps
 -----------
+
+On the importance of local object transformations
+=================================================
 When generating the [world] -> [light] matrix (by saving GL_MODELVIEW and GL_PROJECTION when rendering from light POV), do NOT forget that each object also has local transformations (its location and rotation).
 
 Therefore, when rendering an object, all the matrix-related operations (glPushMAtrix, glTranslate, glRotate) should be done on the GL_MODELVIEW AND on the worldToLight matrix (usually the GL_TEXTURE matrix for GL_TEXTURE7)
