@@ -59,7 +59,7 @@ object Main extends FrameListener {
 
   class SpotLight {
     val rotCenter = Vector3(0,110,0)
-    var rotAngle = 0.0
+    var rotAngle = MathUtils.PI_2
     var rotSpeed = 0.3
     val rotRadius = 80
 
@@ -67,10 +67,8 @@ object Main extends FrameListener {
     var lookAt = Vector3(0,50,0)
 
     def updatePos (elapsedS: Float) {
+      //rotAngle += rotSpeed*elapsedS
       position = rotCenter+Vector3(math.cos(rotAngle).toFloat, 0, math.sin(rotAngle).toFloat)*rotRadius
-      rotAngle += rotSpeed*elapsedS
-/*      if (rotAngle > 2*MathUtils.PI)
-        rotAngle -= 2*MathUtils.PI*/
 
       if (rotAngle > MathUtils.PI)
         rotSpeed *= -1

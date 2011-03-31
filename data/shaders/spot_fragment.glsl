@@ -100,15 +100,8 @@ void main () {
 /*  if (isShadowed())
     gl_FragColor *= 0.5;*/
 
-  vec4 lightVertex = lsVert/lsVert.w;
+  /*vec4 lightVertex = lsVert/lsVert.w;
   float depth = texture2D(shadowMap, lightVertex.st).r;
-  //gl_FragColor = lightVertex;
-  //FIXME: should display the vertex depth when viewed from the light => same color as depth map visualization
-  gl_FragColor = vec4(toColorScale(pow(depth, 30)), 1);
-  //gl_FragColor = vec4(toColorScale(pow(lightVertex.z, 30)), 1);
-  //gl_FragColor = vec4(vec3(pow(depth, 100)), 1);
-
-  /*float depth = texture2D(shadowMap, gl_TexCoord[0].st).r;
-  gl_FragColor = vec4(vec3(pow(depth,30)),1);*/
-  //  gl_FragColor = vec4(normal,1);
+  //DEBUG: should display the vertex depth when viewed from the light => same color as depth map visualization
+  gl_FragColor = vec4(toColorScale(pow(depth, 30)), 1);*/
 }
