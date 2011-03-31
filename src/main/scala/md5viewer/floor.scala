@@ -17,13 +17,19 @@ class Floor (size: Float) {
     val vertBuffer = glmesh.vertBuffer
     val texCoordsBuff = glmesh.texCoordsBuffer
     val tangentBuffer = glmesh.getAttribBuffer("tangent")
+    val normalBuffer = glmesh.normalBuffer
     def p(x: Float, y:Float, z:Float) {
       vertBuffer.put(x)
       vertBuffer.put(y)
       vertBuffer.put(z)
-      tangentBuffer.put(1.0f)
+      //Our quad is lying on the floor => it has normal=(0,1,0) (up) and tangent = (-1,0,0) 
+      //(-1,0,0) is the tangent value that is consistant with the way we calculate tangent for MD5
+      tangentBuffer.put(-1)
       tangentBuffer.put(0)
       tangentBuffer.put(0)
+      normalBuffer.put(0)
+      normalBuffer.put(1)
+      normalBuffer.put(0)
     }
 
     def t(u: Float, v: Float) {
@@ -52,10 +58,12 @@ class Floor (size: Float) {
     vertBuffer.rewind()
     texCoordsBuff.rewind()
     tangentBuffer.rewind()
+    normalBuffer.rewind()
     idx.rewind()
 
     //Add some dummy textures
     glmesh.addTex(GL_TEXTURE0, TexUtils.loadWhiteTex(), "colorTex", 0)
+    //normal pointing upward (z = up in tbn space)
     glmesh.addTex(GL_TEXTURE1, TexUtils.createMonoTexture(0,0,255), "localTex", 1)
     glmesh.addTex(GL_TEXTURE2, TexUtils.loadBlackTex(), "specularTex", 2)
   }

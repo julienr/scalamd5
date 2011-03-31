@@ -25,6 +25,9 @@ varying float distToLight;
 
 varying vec4 lsVert;
 
+varying vec3 dtangent;
+
+
 //Returns true if the current fragment is in the shadow
 bool isShadowed () {
   //shadowCoord is in homogoneous coords, need to divide by w to project it on the light view
@@ -95,11 +98,12 @@ void main () {
 
     //gl_FragColor = vec4(vec3(att),1);
     }
-    gl_FragColor = vec4(vec3(spotEffect), 1);
+    //gl_FragColor = vec4(vec3(spotEffect), 1);
   } 
+  //gl_FragColor = vec4(vec3(NdotL), 1);
 
-/*  if (isShadowed())
-    gl_FragColor *= 0.5;*/
+  if (isShadowed())
+    gl_FragColor *= 0.5;
 
   /*vec4 lightVertex = lsVert/lsVert.w;
   float depth = texture2D(shadowMap, lightVertex.st).r;
