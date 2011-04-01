@@ -20,7 +20,7 @@ uniform vec3 eyeSpotDir;
 //light vec is the vector going from the light to the vertex
 varying vec3 tbnLightVec;
 varying vec3 eyeLightVec;
-varying vec3 eyeVec;
+varying vec3 tbnVertPos;
 varying float distToLight;
 
 varying vec4 lsVert;
@@ -88,7 +88,7 @@ void main () {
 
       //specular
       //compute half vector as 
-      vec3 hv = normalize(eyeVec - l);
+      vec3 hv = normalize(tbnVertPos - l);
       float NdotHV = max(dot(normal, hv), 0.0);
       vec4 specular = texture2D(specularTex, gl_TexCoord[0].st);
       //gl_FragColor = vec4(vec3(NdotHV), 1);
@@ -98,12 +98,13 @@ void main () {
 
     //gl_FragColor = vec4(vec3(att),1);
     }
-    //gl_FragColor = vec4(vec3(spotEffect), 1);
+    gl_FragColor = vec4(vec3(spotEffect), 1);
   } 
   //gl_FragColor = vec4(vec3(NdotL), 1);
 
   if (isShadowed())
     gl_FragColor *= 0.5;
+
 
   /*vec4 lightVertex = lsVert/lsVert.w;
   float depth = texture2D(shadowMap, lightVertex.st).r;

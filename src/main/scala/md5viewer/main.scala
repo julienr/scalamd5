@@ -139,7 +139,7 @@ object Main extends FrameListener {
       Console.println("Anim loaded")
     }
 
-    floor = new Floor(100)
+    floor = new Floor(1000)
 
     Kernel.mainLoop(Unit => this )
   }
@@ -172,7 +172,7 @@ object Main extends FrameListener {
     Renderer.drawWorldAxis(1);
 
     glProgram.bind()
-    glProgram.setUniform("lightPos", camera.getRotation.getConjugate.rotate(light.position-camera.getPosition))
+    glProgram.setUniform("eyelightPos", camera.getRotation.getConjugate.rotate(light.position-camera.getPosition))
     glProgram.setUniform("eyeSpotDir", camera.getRotation.getConjugate.rotate(light.lookAt-light.position))
     glProgram.setUniform("attVector", Vector3(1.0f, 0, 0));
     glProgram.setUniform("spotCosCutoff", math.cos(0.3).toFloat)
