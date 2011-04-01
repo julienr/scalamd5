@@ -2,12 +2,12 @@
 //See http://www.fabiensanglard.net/bumpMapping/index.php
 attribute vec3 tangent;
 
-uniform vec3 lightPos;
+uniform vec3 eyeLightPos;
 uniform vec3 eyeSpotDir;
 
 varying vec3 tbnLightVec;
 varying vec3 eyeLightVec;
-varying vec3 eyeVec;
+varying vec3 tbnVertPos;
 varying float distToLight;
 
 varying vec4 lsVert;
@@ -35,14 +35,14 @@ void main () {
                         t.z, b.z, n.z);
 
   //get vertex and light position in eye space
-  vec3 vertPos = vec3(gl_ModelViewMatrix*gl_Vertex);
-  vec3 viewLightPos = lightPos; 
-  vec3 aux = viewLightPos-vertPos;
+  vec3 eyeVertPos = vec3(gl_ModelViewMatrix*gl_Vertex);
+  vec3 viewLightPos = eyeLightPos; 
+  vec3 aux = eyeLightPos-eyeVertPos;
   eyeLightVec = normalize(aux);
   distToLight = length(aux);
   
   //tbnLightVec = tbnMatrix*eyeLightVec;
-  tbnLightVec = tbnMatrix*(-eyeSpotDir);
+  tbnLightVec = tbnMatrix*(-normalize(eyeSpotDir));
 
-  eyeVec = tbnMatrix*(-vertPos);
+  tbnVertPos = tbnMatrix*(-eyeVertPos);
 }
