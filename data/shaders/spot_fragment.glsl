@@ -77,6 +77,8 @@ void main () {
   float NdotL = max(dot(normal, l), 0.0);
 
   if (NdotL > 0.0) {
+    //Test if the light vec (going from our vert to the light source) is in the cone 
+    //(it is if its angle with the spotDir is < spotCutoff
     float spotEffect = dot(normalize(eyeSpotDir), normalize(-eyeLightVec));
     if (spotEffect > spotCosCutoff) {
       spotEffect = pow(spotEffect, spotExp);

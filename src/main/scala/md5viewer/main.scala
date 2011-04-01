@@ -172,8 +172,10 @@ object Main extends FrameListener {
     Renderer.drawWorldAxis(1);
 
     glProgram.bind()
+    //eyeLightPos is an absolute position => translate by camera.getPosition
     glProgram.setUniform("eyelightPos", camera.getRotation.getConjugate.rotate(light.position-camera.getPosition))
-    glProgram.setUniform("eyeSpotDir", camera.getRotation.getConjugate.rotate(light.lookAt-light.position))
+    //spotDir is a direction, no need to translate by - camera.position
+    glProgram.setUniform("eyeSpotDir", camera.getRotation.getConjugate.rotate(light.lookAt-light.position)) 
     glProgram.setUniform("attVector", Vector3(1.0f, 0, 0));
     glProgram.setUniform("spotCosCutoff", math.cos(0.3).toFloat)
     glProgram.setUniform("spotExp", 50)
