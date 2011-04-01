@@ -36,7 +36,6 @@ void main () {
 
   //get vertex and light position in eye space
   vec3 eyeVertPos = vec3(gl_ModelViewMatrix*gl_Vertex);
-  vec3 viewLightPos = eyeLightPos; 
   vec3 aux = eyeLightPos-eyeVertPos;
   eyeLightVec = normalize(aux);
   distToLight = length(aux);

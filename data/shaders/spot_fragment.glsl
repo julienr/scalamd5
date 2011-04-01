@@ -98,7 +98,7 @@ void main () {
 
     //gl_FragColor = vec4(vec3(att),1);
     }
-    //gl_FragColor = vec4(vec3(spotEffect), 1);
+    gl_FragColor = vec4(vec3(spotEffect), 1);
   } 
   //gl_FragColor = vec4(vec3(NdotL), 1);
 
