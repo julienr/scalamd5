@@ -58,16 +58,16 @@ object Main extends FrameListener {
   }
 
   class SpotLight {
-    val rotCenter = Vector3(0,110,0)
+    val rotCenter = Vector3(0,150,0)
     var rotAngle = MathUtils.PI_2
-    var rotSpeed = 0.3
+    var rotSpeed = 0.3f
     val rotRadius = 80
 
     var position = rotCenter
     var lookAt = Vector3(0,50,0)
 
     def updatePos (elapsedS: Float) {
-      //rotAngle += rotSpeed*elapsedS
+      rotAngle += rotSpeed*elapsedS
       position = rotCenter+Vector3(math.cos(rotAngle).toFloat, 0, math.sin(rotAngle).toFloat)*rotRadius
 
       if (rotAngle > MathUtils.PI)
@@ -87,6 +87,19 @@ object Main extends FrameListener {
       glColor4f(1,0,0,1)
       glBegin(GL_POINTS)
       glVertex3f(position.x, position.y, position.z)
+      glEnd()
+
+      //look at
+      glColor4f(0,1,0,1)
+      glBegin(GL_POINTS)
+      glVertex3f(lookAt.x, lookAt.y, lookAt.z)
+      glEnd()
+
+      //direction
+      glColor4f(0,0,1,1)
+      glBegin(GL_LINES)
+      glVertex3f(position.x, position.y, position.z)
+      glVertex3f(lookAt.x, lookAt.y, lookAt.z)
       glEnd()
     }
   }
@@ -139,7 +152,7 @@ object Main extends FrameListener {
       Console.println("Anim loaded")
     }
 
-    floor = new Floor(1000)
+    floor = new Floor(400)
 
     Kernel.mainLoop(Unit => this )
   }
@@ -172,10 +185,12 @@ object Main extends FrameListener {
     Renderer.drawWorldAxis(1);
 
     glProgram.bind()
+
     //eyeLightPos is an absolute position => translate by camera.getPosition
     glProgram.setUniform("eyeLightPos", camera.getRotation.getConjugate.rotate(light.position-camera.getPosition))
     //spotDir is a direction, no need to translate by - camera.position
-    glProgram.setUniform("eyeSpotDir", camera.getRotation.getConjugate.rotate(light.lookAt-light.position)) 
+    val spotDir = (light.lookAt-light.position).getNormalized()
+    glProgram.setUniform("eyeSpotDir", camera.getRotation.getConjugate.rotate(spotDir)) 
     glProgram.setUniform("attVector", Vector3(1.0f, 0, 0));
     glProgram.setUniform("spotCosCutoff", math.cos(0.3).toFloat)
     glProgram.setUniform("spotExp", 50)

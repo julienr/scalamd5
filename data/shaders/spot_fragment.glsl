@@ -98,14 +98,19 @@ void main () {
       vec4 lightSpecular = vec4(10,10,10,1);
       gl_FragColor += att*(lightSpecular*specular*pow(NdotHV, shininess));
 
-    //gl_FragColor = vec4(vec3(att),1);
+      //gl_FragColor = vec4(vec3(att),1);
     }
-    gl_FragColor = vec4(vec3(spotEffect), 1);
-  } 
-  //gl_FragColor = vec4(vec3(NdotL), 1);
+    gl_FragColor = vec4(vec3((spotEffect+1.0f)/2.0f), 1);
+    /*vec3 v = (normalize(-eyeLightVec)+vec3(1.0f))/2.0f;
+    gl_FragColor = vec4(v, 1);*/
+//    gl_FragColor = vec4(dtangent, 1);
+    //gl_FragColor = vec4(vec3(-normalize(eyeSpotDir)), 1);
+  }
+  //gl_FragColor = vec4(-normalize(eyeLightVec), 1);
+  //gl_FragColor = vec4(-normalize(eyeSpotDir), 1);
 
-  if (isShadowed())
-    gl_FragColor *= 0.5;
+/*if (isShadowed())
+    gl_FragColor *= 0.5;*/
 
 
   /*vec4 lightVertex = lsVert/lsVert.w;
