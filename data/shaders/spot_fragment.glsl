@@ -32,6 +32,7 @@ varying vec3 dtangent;
 bool isShadowed () {
   //shadowCoord is in homogoneous coords, need to divide by w to project it on the light view
   vec4 lsVertProj = lsVert/lsVert.w;
+  lsVertProj.z += 0.0005; //add a small bias to avoid artifacts due to precision issues
   float depth = texture2D(shadowMap, lsVertProj.st).r;
   if (lsVert.w > 0.0) {
     return lsVertProj.z > depth;
@@ -93,24 +94,17 @@ void main () {
       vec3 hv = normalize(tbnVertPos - l);
       float NdotHV = max(dot(normal, hv), 0.0);
       vec4 specular = texture2D(specularTex, gl_TexCoord[0].st);
-      //gl_FragColor = vec4(vec3(NdotHV), 1);
       float shininess = 50.0f;
       vec4 lightSpecular = vec4(10,10,10,1);
       gl_FragColor += att*(lightSpecular*specular*pow(NdotHV, shininess));
 
-      //gl_FragColor = vec4(vec3(att),1);
     }
-    gl_FragColor = vec4(vec3((spotEffect+1.0f)/2.0f), 1);
-    /*vec3 v = (normalize(-eyeLightVec)+vec3(1.0f))/2.0f;
-    gl_FragColor = vec4(v, 1);*/
-//    gl_FragColor = vec4(dtangent, 1);
-    //gl_FragColor = vec4(vec3(-normalize(eyeSpotDir)), 1);
+    //gl_FragColor = vec4(vec3((spotEffect+1.0f)/2.0f), 1);
+  
   }
-  //gl_FragColor = vec4(-normalize(eyeLightVec), 1);
-  //gl_FragColor = vec4(-normalize(eyeSpotDir), 1);
 
-/*if (isShadowed())
-    gl_FragColor *= 0.5;*/
+  if (isShadowed())
+    gl_FragColor *= 0.5;
 
 
   /*vec4 lightVertex = lsVert/lsVert.w;

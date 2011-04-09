@@ -58,7 +58,7 @@ object Main extends FrameListener {
   }
 
   class SpotLight {
-    val rotCenter = Vector3(0,150,0)
+    val rotCenter = Vector3(50,150,0)
     var rotAngle = MathUtils.PI_2
     var rotSpeed = 0.3f
     val rotRadius = 80
@@ -70,10 +70,13 @@ object Main extends FrameListener {
       rotAngle += rotSpeed*elapsedS
       position = rotCenter+Vector3(math.cos(rotAngle).toFloat, 0, math.sin(rotAngle).toFloat)*rotRadius
 
-      if (rotAngle > MathUtils.PI)
+      if (rotAngle > MathUtils.PI) {
         rotSpeed *= -1
-      if (rotAngle < 0)
+        rotAngle = MathUtils.PI
+      } else if (rotAngle < 0) {
         rotSpeed *= -1
+        rotAngle = 0
+      }
     }
 
     def draw () {
@@ -161,6 +164,7 @@ object Main extends FrameListener {
   def render () {
     //Light POV rendering
     shadowFBO.startCapturing()
+    glCullFace(GL_FRONT) //use front-face culling for light POV rendering to avoid artifacts due to shadowmap precision problems
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
     gluPerspective(45.0f, 1.0f, 1.0f, camera.zFar)
@@ -178,6 +182,7 @@ object Main extends FrameListener {
 
     //floor.glentity.draw(null)
     model.glentity.draw(null)
+    glCullFace(GL_BACK)
     shadowFBO.stopCapturing()
 
     //Normal rendering
