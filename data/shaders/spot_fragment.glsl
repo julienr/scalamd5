@@ -25,8 +25,6 @@ varying float distToLight;
 
 varying vec4 lsVert;
 
-varying vec3 dtangent;
-
 
 //Returns true if the current fragment is in the shadow
 bool isShadowed () {
@@ -98,14 +96,11 @@ void main () {
       vec4 lightSpecular = vec4(10,10,10,1);
       gl_FragColor += att*(lightSpecular*specular*pow(NdotHV, shininess));
 
+      if (isShadowed())
+        gl_FragColor *= 0.5;
     }
     //gl_FragColor = vec4(vec3((spotEffect+1.0f)/2.0f), 1);
-  
   }
-
-  if (isShadowed())
-    gl_FragColor *= 0.5;
-
 
   /*vec4 lightVertex = lsVert/lsVert.w;
   float depth = texture2D(shadowMap, lightVertex.st).r;

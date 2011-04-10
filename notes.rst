@@ -112,3 +112,8 @@ When generating the [world] -> [light] matrix (by saving GL_MODELVIEW and GL_PRO
 
 Therefore, when rendering an object, all the matrix-related operations (glPushMAtrix, glTranslate, glRotate) should be done on the GL_MODELVIEW AND on the worldToLight matrix (usually the GL_TEXTURE matrix for GL_TEXTURE7)
 
+On spot lights
+==============
+When rendering a spot light with pixel/fragment shader, one might run into spot light cone distortion problems.
+The reason is most likely that the eyeLightVec has been normalized in the vertex shader. The explanation is that the lightDir is supposed to be vertPos-lightPos. Now, the fragment will interpolate this direction from the vertices around the fragment. By normalizing before this interpolation, a vertex very far away will have the same "weight" as a close vertex and I guess that is the cause of the problem.
+See : http://www.opengl.org/discussion_boards/ubbthreads.php?ubb=showflat&Number=286107&page=2

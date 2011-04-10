@@ -26,37 +26,6 @@ object Main extends FrameListener {
 
   var shadowFBO : Framebuffer = null
 
-  //point light position
-  class PointLight {
-    val rotCenter = Vector3(0,90,0)
-    var rotAngle = 0.0
-    var rotSpeed = 0.3
-    val rotRadius = 50
-
-    var position = rotCenter
-
-    def updatePos (elapsedS: Float) {
-      position = rotCenter+Vector3(math.cos(rotAngle).toFloat, 0, math.sin(rotAngle).toFloat)*rotRadius
-      rotAngle += rotSpeed*elapsedS
-      if (rotAngle > 2*MathUtils.PI)
-        rotAngle -= 2*MathUtils.PI
-    }
-
-    def draw () {
-      glActiveTexture(GL_TEXTURE0)
-      glDisable(GL_TEXTURE_2D)
-      glActiveTexture(GL_TEXTURE1)
-      glDisable(GL_TEXTURE_2D)
-
-      //light
-      glPointSize(5.0f)
-      glColor4f(1,0,0,1)
-      glBegin(GL_POINTS)
-      glVertex3f(position.x, position.y, position.z)
-      glEnd()
-    }
-  }
-
   class SpotLight {
     val rotCenter = Vector3(50,150,0)
     var rotAngle = MathUtils.PI_2
@@ -155,7 +124,7 @@ object Main extends FrameListener {
       Console.println("Anim loaded")
     }
 
-    floor = new Floor(400)
+    floor = new Floor(1000)
 
     Kernel.mainLoop(Unit => this )
   }

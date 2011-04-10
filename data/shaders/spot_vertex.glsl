@@ -15,9 +15,6 @@ varying float distToLight;
 
 varying vec4 lsVert;
 
-//FIXME: Just for debug => remove
-varying vec3 dtangent;
-
 void main () {
   gl_Position = gl_ModelViewProjectionMatrix*gl_Vertex;
   gl_TexCoord[0] = gl_MultiTexCoord0;
@@ -31,9 +28,6 @@ void main () {
   vec3 t = normalize(gl_NormalMatrix*tangent);
   vec3 b = cross(t, n);
 
-  //dtangent = vec3(normalize(gl_LightSource[0].position));
-  dtangent = vec3((spotCosCutoff+1.0f)/2.0f);
-
   mat3 tbnMatrix = mat3(t.x, b.x, n.x,
                         t.y, b.y, n.y,
                         t.z, b.z, n.z);
@@ -41,6 +35,7 @@ void main () {
   //get vertex and light position in eye space
   vec3 eyeVertPos = vec3(gl_ModelViewMatrix*gl_Vertex);
   vec3 aux = eyeLightPos-eyeVertPos;
+  //Don't normalize, it will cause distortion in the spot light cone
   eyeLightVec = /*normalize(*/aux/*)*/;
   distToLight = length(aux);
   
