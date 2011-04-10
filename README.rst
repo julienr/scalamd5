@@ -8,6 +8,9 @@ It supports :
 * per-pixel lighting with bump mapping and specular highlights
 * basic shadow maps using OpenGL framebuffer objects
 
+Here is a screenshot of the application running. In the lower-right corner, the depth buffer from the light point of view is displayed in colored scale. Below it, the color buffer from the light point of view is shown. Not that this color buffer is only useful for debugging and that textures/shaders are disabled when rendering from the light point of view.
+.. image:: http://fhtagn.net/images/scalamd5/screen2.png
+
 Usage
 =====
 To be able to run this program, you must have some md5 models to load. I used Doom 3 models during development, but I cannot redistribute them.
