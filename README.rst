@@ -9,7 +9,8 @@ It supports :
 * basic shadow maps using OpenGL framebuffer objects
 
 Here is a screenshot of the application running. In the lower-right corner, the depth buffer from the light point of view is displayed in colored scale. Below it, the color buffer from the light point of view is shown. Not that this color buffer is only useful for debugging and that textures/shaders are disabled when rendering from the light point of view.
-.. image:: http://fhtagn.net/images/scalamd5/screen2.png
+
+.. image:: screen.png 
 
 Usage
 =====
