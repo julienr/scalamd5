@@ -25,4 +25,6 @@ For a mesh with a shader property equal to *models/monsters/imp/imp*, the progra
 
 Internals
 =========
+This project uses simple-build-tool for building. Just run 'sbt' in the main project directory.
+
 See the notes.rst file for some observations made during the development.
